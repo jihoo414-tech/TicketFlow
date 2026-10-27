@@ -21,6 +21,12 @@
             border-radius: 8px;
             margin-bottom: 8px;
         }
+        .performance {
+            cursor: pointer;
+        }
+        .performance.selected {
+            border-color: #333;
+        }
         .message {
             color: #666;
         }
@@ -31,9 +37,23 @@
 <p id="message" class="message">불러오는 중...</p>
 <ul id="performances"></ul>
 
+<section id="showtime-section" hidden>
+    <h2 id="showtime-title"></h2>
+    <p id="showtime-message" class="message"></p>
+    <ul id="showtimes"></ul>
+</section>
+
 <script>
     const message = document.getElementById('message');
     const list = document.getElementById('performances');
+    const showtimeSection = document.getElementById('showtime-section');
+    const showtimeTitle = document.getElementById('showtime-title');
+    const showtimeMessage = document.getElementById('showtime-message');
+    const showtimeList = document.getElementById('showtimes');
+
+    function formatDateTime(value) {
+        return value.slice(0, 16).replace('T', ' ');
+    }
 
     async function loadPerformances() {
         try {
@@ -51,11 +71,53 @@
             message.hidden = true;
             for (const performance of performances) {
                 const item = document.createElement('li');
+                item.className = 'performance';
                 item.textContent = performance.title;
+                item.addEventListener('click', () => selectPerformance(item, performance));
                 list.appendChild(item);
             }
         } catch (error) {
             message.textContent = '공연 목록을 불러오지 못했습니다.';
+        }
+    }
+
+    function selectPerformance(item, performance) {
+        for (const other of list.children) {
+            other.classList.remove('selected');
+        }
+        item.classList.add('selected');
+        loadShowtimes(performance);
+    }
+
+    async function loadShowtimes(performance) {
+        showtimeSection.hidden = false;
+        showtimeTitle.textContent = performance.title + ' 회차';
+        showtimeMessage.hidden = false;
+        showtimeMessage.textContent = '불러오는 중...';
+        showtimeList.replaceChildren();
+
+        try {
+            const response = await fetch(`/api/performances/${performance.id}/showtimes`);
+            if (!response.ok) {
+                throw new Error(response.status);
+            }
+            const showtimes = await response.json();
+
+            if (showtimes.length === 0) {
+                showtimeMessage.textContent = '예정된 회차가 없습니다.';
+                return;
+            }
+
+            showtimeMessage.hidden = true;
+            for (const showtime of showtimes) {
+                const item = document.createElement('li');
+                item.textContent = `${formatDateTime(showtime.startsAt)} · `
+                    + `${showtime.price.toLocaleString('ko-KR')}원 · `
+                    + `예매 오픈 ${formatDateTime(showtime.bookingOpenAt)}`;
+                showtimeList.appendChild(item);
+            }
+        } catch (error) {
+            showtimeMessage.textContent = '회차 목록을 불러오지 못했습니다.';
         }
     }
 
