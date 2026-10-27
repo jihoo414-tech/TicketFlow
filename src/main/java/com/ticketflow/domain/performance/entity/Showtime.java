@@ -1,5 +1,7 @@
 package com.ticketflow.domain.performance.entity;
 
+import com.ticketflow.global.exception.BusinessException;
+import com.ticketflow.global.exception.ErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -29,10 +31,17 @@ public class Showtime {
     @Column(name = "price")
     private int price;
 
-    public Showtime(Performance performance, LocalDateTime startsAt, LocalDateTime bookingOpenAt, int price) {
+    private Showtime(Performance performance, LocalDateTime startsAt, LocalDateTime bookingOpenAt, int price) {
         this.performance = performance;
         this.startsAt = startsAt;
         this.bookingOpenAt = bookingOpenAt;
         this.price = price;
+    }
+
+    public static Showtime create(Performance performance, LocalDateTime startsAt, LocalDateTime bookingOpenAt, int price) {
+        if (!bookingOpenAt.isBefore(startsAt)) {
+            throw new BusinessException(ErrorCode.BOOKING_OPEN_NOT_BEFORE_START);
+        }
+        return new Showtime(performance, startsAt, bookingOpenAt, price);
     }
 }

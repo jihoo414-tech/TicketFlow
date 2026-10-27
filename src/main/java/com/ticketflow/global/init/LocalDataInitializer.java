@@ -50,9 +50,9 @@ public class LocalDataInitializer implements ApplicationRunner {
         Performance phantom = performanceRepository.save(new Performance("오페라의 유령"));
 
         List<Showtime> showtimes = showtimeRepository.saveAll(List.of(
-                new Showtime(lesMis, now.plusDays(7), now.minusMinutes(10), 150000),
-                new Showtime(lesMis, now.plusDays(8), now.plusMinutes(3), 150000),
-                new Showtime(phantom, now.plusDays(14), now.minusMinutes(10), 130000)
+                Showtime.create(lesMis, now.plusDays(7), now.minusMinutes(10), 150000),
+                Showtime.create(lesMis, now.plusDays(8), now.plusMinutes(3), 150000),
+                Showtime.create(phantom, now.plusDays(14), now.minusMinutes(10), 130000)
         ));
 
         for (Showtime showtime : showtimes) {
