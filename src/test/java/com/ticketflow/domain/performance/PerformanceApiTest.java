@@ -66,8 +66,17 @@ class PerformanceApiTest {
     }
 
     @Test
-    void 없는_공연의_회차_목록을_조회하면_빈_목록이_보인다() throws Exception {
+    void 없는_공연의_회차_목록을_조회하면_공연이_없다는_오류가_온다() throws Exception {
         mockMvc.perform(get("/api/performances/{performanceId}/showtimes", Long.MAX_VALUE))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PERFORMANCE_NOT_FOUND"));
+    }
+
+    @Test
+    void 회차가_없는_공연의_회차_목록을_조회하면_빈_목록이_보인다() throws Exception {
+        Performance lesMis = performanceRepository.save(new Performance("레미제라블"));
+
+        mockMvc.perform(get("/api/performances/{performanceId}/showtimes", lesMis.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
     }
