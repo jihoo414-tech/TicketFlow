@@ -8,7 +8,7 @@ com.ticketflow
 │   ├── performance/  공연·회차·좌석 위치 (조회만)
 │   ├── booking/      좌석 상태 머신 전체: 선점·선점 취소·결제→예매·선점 만료·예매 취소·내 예매 조회
 │   └── member/       회원
-└── global/           exception, config 두 개만
+└── global/           exception, config, init 세 개만
 ```
 
 각 도메인 안에는 `controller` / `service` / `repository` / `entity`만 둔다. JPA 엔티티는 `entity`에 둔다. 헥사고날이나 클린 아키텍처는 쓰지 않는다. 새 도메인 패키지, 새 레이어, `global/` 하위 폴더를 추가하려면 사용자 승인과 ADR이 필요하다.
@@ -16,6 +16,8 @@ com.ticketflow
 **선택 이유 (사용자)**: booking 패키지가 좌석의 선점·예매·취소 흐름을 모두 관리하면 수정할 때 관리가 더 간편하다.
 
 **`entity` 패키지를 둔 이유 (사용자)**: 엔티티 파일이 도메인 바로 아래에 섞이면 경계가 흐려진다. `entity` 폴더가 있으면 폴더 이름만으로 엔티티가 어디 있는지 알 수 있고, 엔티티가 많아질 `booking`에서도 흩어지지 않고 한곳에서 볼 수 있다.
+
+**`global/init`을 추가한 이유 (사용자)**: `data.sql`은 테스트 DB에도 들어가서 테스트가 고정된 초기 데이터와 날짜에 묶인다. 테스트와 앱의 데이터를 분리하기 위해 초기 데이터는 `local` 프로필에서만 앱 코드로 넣고, 그 코드를 `global/init`에 둔다. 테스트는 필요한 데이터를 스스로 만든다.
 
 ## Considered Options
 
