@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Import;
 class TicketflowApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void MYSQL_과_함께_테스트가_실행된다() {
 	}
 
 }
