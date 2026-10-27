@@ -16,10 +16,15 @@ public class PerformanceService {
 
     @Transactional(readOnly = true)
     public List<PerformanceResponse> getPerformances() {
-        List<Performance> performances = performanceRepository.findAll();
+        return toResponses(findAllPerformances());
+    }
 
-        return performances
-                .stream()
+    private List<Performance> findAllPerformances() {
+        return performanceRepository.findAll();
+    }
+
+    private List<PerformanceResponse> toResponses(List<Performance> performances) {
+        return performances.stream()
                 .map(PerformanceResponse::from)
                 .toList();
     }
