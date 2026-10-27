@@ -55,9 +55,9 @@ class PerformanceApiTest {
         Performance phantom = performanceRepository.save(new Performance("오페라의 유령"));
         LocalDateTime openAt = LocalDateTime.of(2026, 10, 1, 10, 0, 0);
         showtimeRepository.saveAll(List.of(
-                new Showtime(lesMis, LocalDateTime.of(2026, 11, 1, 19, 0, 0), openAt, 50000),
-                new Showtime(lesMis, LocalDateTime.of(2026, 11, 1, 14, 0, 0), openAt, 50000),
-                new Showtime(phantom, LocalDateTime.of(2026, 11, 2, 19, 0, 0), openAt, 60000)
+                Showtime.create(lesMis, LocalDateTime.of(2026, 11, 1, 19, 0, 0), openAt, 50000),
+                Showtime.create(lesMis, LocalDateTime.of(2026, 11, 1, 14, 0, 0), openAt, 50000),
+                Showtime.create(phantom, LocalDateTime.of(2026, 11, 2, 19, 0, 0), openAt, 60000)
         ));
 
         mockMvc.perform(get("/api/performances/{performanceId}/showtimes", lesMis.getId()))

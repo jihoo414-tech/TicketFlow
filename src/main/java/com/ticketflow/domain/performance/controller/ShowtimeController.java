@@ -1,7 +1,6 @@
 package com.ticketflow.domain.performance.controller;
 
 import com.ticketflow.domain.performance.dto.ShowtimeResponse;
-import com.ticketflow.domain.performance.entity.Performance;
 import com.ticketflow.domain.performance.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
