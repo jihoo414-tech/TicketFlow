@@ -2,7 +2,9 @@ package com.ticketflow.domain.performance;
 
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.performance.entity.Performance;
+import com.ticketflow.domain.performance.entity.Showtime;
 import com.ticketflow.domain.performance.repository.PerformanceRepository;
+import com.ticketflow.domain.performance.repository.ShowtimeRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,8 +13,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,6 +34,9 @@ class PerformanceApiTest {
     @Autowired
     PerformanceRepository performanceRepository;
 
+    @Autowired
+    ShowtimeRepository showtimeRepository;
+
     @Test
     void 공연_목록을_조회하면_등록된_공연이_모두_보인다() throws Exception {
         performanceRepository.saveAll(List.of(
@@ -40,5 +47,28 @@ class PerformanceApiTest {
         mockMvc.perform(get("/api/performances"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].title").value(containsInAnyOrder("레미제라블", "오페라의 유령")));
+    }
+
+    @Test
+    void 공연의_회차_목록을_조회하면_그_공연의_회차만_시작_시각_순으로_보인다() throws Exception {
+        Performance lesMis = performanceRepository.save(new Performance("레미제라블"));
+        Performance phantom = performanceRepository.save(new Performance("오페라의 유령"));
+        LocalDateTime openAt = LocalDateTime.of(2026, 10, 1, 10, 0, 0);
+        showtimeRepository.saveAll(List.of(
+                new Showtime(lesMis, LocalDateTime.of(2026, 11, 1, 19, 0, 0), openAt, 50000),
+                new Showtime(lesMis, LocalDateTime.of(2026, 11, 1, 14, 0, 0), openAt, 50000),
+                new Showtime(phantom, LocalDateTime.of(2026, 11, 2, 19, 0, 0), openAt, 60000)
+        ));
+
+        mockMvc.perform(get("/api/performances/{performanceId}/showtimes", lesMis.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].startsAt").value(contains("2026-11-01T14:00:00", "2026-11-01T19:00:00")));
+    }
+
+    @Test
+    void 없는_공연의_회차_목록을_조회하면_빈_목록이_보인다() throws Exception {
+        mockMvc.perform(get("/api/performances/{performanceId}/showtimes", Long.MAX_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
     }
 }
