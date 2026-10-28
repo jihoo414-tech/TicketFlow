@@ -2,8 +2,10 @@ package com.ticketflow.domain.performance;
 
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.performance.entity.Performance;
+import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
 import com.ticketflow.domain.performance.repository.PerformanceRepository;
+import com.ticketflow.domain.performance.repository.SeatRepository;
 import com.ticketflow.domain.performance.repository.ShowtimeRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,9 @@ class PerformanceApiTest {
 
     @Autowired
     ShowtimeRepository showtimeRepository;
+
+    @Autowired
+    SeatRepository seatRepository;
 
     @Test
     void 공연_목록을_조회하면_등록된_공연이_모두_보인다() throws Exception {
@@ -79,5 +84,31 @@ class PerformanceApiTest {
         mockMvc.perform(get("/api/performances/{performanceId}/showtimes", lesMis.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void 회차의_좌석_목록을_조회하면_각_좌석의_열_번호_가격_상태가_보인다() throws Exception {
+        Performance lesMis = performanceRepository.save(new Performance("레미제라블"));
+        Showtime showtime = showtimeRepository.save(Showtime.create(
+                lesMis, LocalDateTime.of(2026, 11, 1, 19, 0, 0), LocalDateTime.of(2026, 10, 1, 10, 0, 0), 50000));
+        seatRepository.saveAll(List.of(
+                new Seat(showtime, "A", 1),
+                new Seat(showtime, "A", 2),
+                new Seat(showtime, "B", 1)
+        ));
+
+        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", showtime.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].row").value(contains("A", "A", "B")))
+                .andExpect(jsonPath("$[*].number").value(contains(1, 2, 1)))
+                .andExpect(jsonPath("$[*].price").value(contains(50000, 50000, 50000)))
+                .andExpect(jsonPath("$[*].status").value(contains("AVAILABLE", "AVAILABLE", "AVAILABLE")));
+    }
+
+    @Test
+    void 없는_회차의_좌석_목록을_조회하면_회차가_없다는_오류가_온다() throws Exception {
+        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", Long.MAX_VALUE))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("SHOWTIME_NOT_FOUND"));
     }
 }
