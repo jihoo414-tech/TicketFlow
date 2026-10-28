@@ -64,6 +64,14 @@
             justify-content: center;
             font-size: 12px;
         }
+        .member-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #ddd;
+        }
         .seat.available {
             background: #e6f4ea;
             border-color: #4caf50;
@@ -71,6 +79,13 @@
     </style>
 </head>
 <body>
+<header class="member-bar">
+    <label for="member-select">회원</label>
+    <select id="member-select" disabled>
+        <option value="">불러오는 중...</option>
+    </select>
+</header>
+
 <h1>공연 목록</h1>
 <p id="message" class="message">불러오는 중...</p>
 <ul id="performances"></ul>
@@ -92,6 +107,7 @@
 </section>
 
 <script>
+    const memberSelect = document.getElementById('member-select');
     const message = document.getElementById('message');
     const list = document.getElementById('performances');
     const showtimeSection = document.getElementById('showtime-section');
@@ -113,9 +129,40 @@
         return value.slice(0, 16).replace('T', ' ');
     }
 
+    function apiFetch(url, options = {}) {
+        const headers = new Headers(options.headers);
+        if (memberSelect.value) {
+            headers.set('X-Member-Id', memberSelect.value);
+        }
+        return fetch(url, { ...options, headers });
+    }
+
+    async function loadMembers() {
+        try {
+            const response = await fetch('/api/members');
+            if (!response.ok) {
+                throw new Error(response.status);
+            }
+            const members = await response.json();
+
+            memberSelect.replaceChildren();
+            if (members.length === 0) {
+                memberSelect.appendChild(new Option('회원 없음', ''));
+                return;
+            }
+
+            for (const member of members) {
+                memberSelect.appendChild(new Option(member.name, member.id));
+            }
+            memberSelect.disabled = false;
+        } catch (error) {
+            memberSelect.replaceChildren(new Option('불러오기 실패', ''));
+        }
+    }
+
     async function loadPerformances() {
         try {
-            const response = await fetch('/api/performances');
+            const response = await apiFetch('/api/performances');
             if (!response.ok) {
                 throw new Error(response.status);
             }
@@ -156,7 +203,7 @@
         seatSection.hidden = true;
 
         try {
-            const response = await fetch(`/api/performances/${performance.id}/showtimes`);
+            const response = await apiFetch(`/api/performances/${performance.id}/showtimes`);
             if (response.status === 404) {
                 showtimeMessage.textContent = '존재하지 않는 공연입니다.';
                 return;
@@ -203,7 +250,7 @@
         seatRows.replaceChildren();
 
         try {
-            const response = await fetch(`/api/showtimes/${showtime.id}/seats`);
+            const response = await apiFetch(`/api/showtimes/${showtime.id}/seats`);
             if (response.status === 404) {
                 seatMessage.textContent = '존재하지 않는 회차입니다.';
                 return;
@@ -251,6 +298,7 @@
         seatPrice.textContent = '가격: ' + prices.map(price => price.toLocaleString('ko-KR') + '원').join(', ');
     }
 
+    loadMembers();
     loadPerformances();
 </script>
 </body>
