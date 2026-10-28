@@ -38,4 +38,38 @@ class MemberApiTest {
                 .andExpect(jsonPath("$[*].id").value(containsInAnyOrder(first.getId().intValue(), second.getId().intValue())))
                 .andExpect(jsonPath("$[*].name").value(containsInAnyOrder("회원1", "회원2")));
     }
+
+    @Test
+    void 회원_id_헤더를_실어_요청하면_그_회원의_id와_이름이_보인다() throws Exception {
+        Member member = memberRepository.save(new Member("회원1"));
+
+        mockMvc.perform(get("/api/members/me")
+                        .header("X-Member-Id", member.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(member.getId()))
+                .andExpect(jsonPath("$.name").value("회원1"));
+    }
+
+    @Test
+    void 회원_id_헤더_없이_요청하면_회원_id가_없다는_오류가_온다() throws Exception {
+        mockMvc.perform(get("/api/members/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("MEMBER_ID_MISSING"));
+    }
+
+    @Test
+    void 회원_id_헤더가_숫자가_아니면_회원_id가_올바르지_않다는_오류가_온다() throws Exception {
+        mockMvc.perform(get("/api/members/me")
+                        .header("X-Member-Id", "abc"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("MEMBER_ID_INVALID"));
+    }
+
+    @Test
+    void 없는_회원의_id로_요청하면_회원이_없다는_오류가_온다() throws Exception {
+        mockMvc.perform(get("/api/members/me")
+                        .header("X-Member-Id", Long.MAX_VALUE))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("MEMBER_NOT_FOUND"));
+    }
 }
