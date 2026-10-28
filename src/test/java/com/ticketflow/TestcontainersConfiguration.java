@@ -3,6 +3,7 @@ package com.ticketflow;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.testcontainers.mysql.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -13,6 +14,12 @@ public class TestcontainersConfiguration {
 	@ServiceConnection
 	MySQLContainer mysqlContainer() {
 		return new MySQLContainer(DockerImageName.parse("mysql:8.4"));
+	}
+
+	@Bean
+	@Primary
+	TestClock testClock() {
+		return new TestClock();
 	}
 
 }
