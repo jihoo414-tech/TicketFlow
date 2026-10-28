@@ -21,4 +21,11 @@ public class MemberController {
 
         return ResponseEntity.ok(memberResponseList);
     }
+
+    @GetMapping("/api/members/me")
+    public ResponseEntity<MemberResponse> getMe(@CurrentMemberId Long memberId) {
+        MemberResponse memberResponse = memberService.getMember(memberId);
+
+        return ResponseEntity.ok(memberResponse);
+    }
 }
