@@ -24,6 +24,12 @@ public class ShowtimeService {
         return toResponses(findShowtimesOf(performanceId));
     }
 
+    @Transactional(readOnly = true)
+    public Showtime getShowtime(Long showtimeId) {
+        return showtimeRepository.findById(showtimeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SHOWTIME_NOT_FOUND));
+    }
+
     private void validatePerformanceExists(Long performanceId) {
         if (!performanceRepository.existsById(performanceId)) {
             throw new BusinessException(ErrorCode.PERFORMANCE_NOT_FOUND);
