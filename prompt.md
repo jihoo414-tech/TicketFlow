@@ -807,3 +807,94 @@ findShowtimesInStartOrder 이 이름 대신에 뭔가 좀 더 직관적인 이�
 
 prompt.md도 커밋해줘 내가 push 할 수 있는 상태로 만들어줘 오늘은 여기까지 작업하고 내일 이어서 할거야.
 
+## 2026-10-27 19:47
+
+고맙구만, 그리고 혹시 동시성 케이스 문서를 작성하기 위해 내가 추가로 공부해올만한 자료같은게 있을까/
+
+## 2026-10-28 11:00
+
+다음으로 진행할 사항은 뭐야?
+
+## 2026-10-28 11:02
+
+응 질문을 줘
+
+## 2026-10-28 11:08
+
+99번 공연이 없다면, controller에 들어와서 service로직에서 예외처리되고 globalExceptionhandler에 의해서 사용자에게 예외가 반환이 돼. 
+공연이 있는 지 확인하지 않으면, 없는 공연에 대한 showtime을 조회하게 돼 따라서 예외가 아니라 빈 회차가 나가게 돼
+readOnly = true를 빼도 동작하지만, 영속성 컨텍스트에 더티체킹 기능을 위해 성능을 더 잡아먹기때문에 붙였어
+showtime을 그대로 반환하면 무슨 문제가 있을지는 잘 몰겠네
+해당 로직은 도메인 모델과 밀접한 로직이기때문에 도메인 엔티티 내부로 두었어
+
+id가 숫자아 아닌 값이 들어오면 spring에서 예외처리를 하게되는데, spring 자체가 problemDetails라는 예외 응답을 하도록 규칙을 정했기 때문이야.
+
+## 2026-10-28 11:12
+
+아 오케이 이해됐고 설명할 수 있다 통과시켜주고 #3과 #2를 닫고 #4로 넘어가줘
+
+## 2026-10-28 11:17
+
+나중에 등급별로 좌석을 확장하고싶은 계획이 있는데, 그럼 A로 가는게 좋지않을까?
+테스트는 회차의_좌석_목록을_조회하면_좌석을_볼_수_있다 로 가자 아직 테스트를 작성하지는 마
+
+## 2026-10-28 11:19
+
+/tdd 응 ㄱ럼 너가 말한대로 이름을 바꾸고, 테스트 작성하고 구현해줘
+
+## 2026-10-28 11:22
+
+@src/test/java/com/ticketflow/domain/performance/entity/ShowtimeTest.java 여기서 BusinessException말고 내가 정확히 정의한 예외가 동작하는지를 검증해줘
+
+## 2026-10-28 11:24
+
+showtime을 Builder패턴으로 엔티티 생성하는것을 고려해보자. 지금 공연시작시간이나 예매시작시간이 안드러나서 읽기가 ㅈㅁ 힘들어
+
+## 2026-10-28 11:26
+
+A로 가자. null검사는 validation을 통해서 입력값을 검증하는것으로 할게. A로 가는 이유는 습관에 의존학싶지않고 직접 빌더를 작성하는 건 너가 말한것처럼 과하다고 생각했어.
+
+## 2026-10-28 11:30
+
+응 실수로 지운거니까 수정해줘 그리고 전체 테스트를 한번 더 돌려줘
+
+## 2026-10-28 11:31
+
+오케이 다시 해봐
+
+## 2026-10-28 11:32
+
+<task-notification>
+<task-id>b84ey7mhr</task-id>
+<tool-use-id>toolu_01NQQSRKpQPjPvtPW6R4hDXX</tool-use-id>
+<output-file>C:\Users\sksms\AppData\Local\Temp\claude\C--Users-sksms-Desktop-ai-ticketflowwithai2\ef7609c4-0a20-4d37-b1a4-834c68b7ad90\tasks\b84ey7mhr.output</output-file>
+<status>completed</status>
+<summary>Background command "Reapply builder and row fix, run all tests" completed (exit code 0)</summary>
+</task-notification>
+
+## 2026-10-28 11:33
+
+빌더패턴을 고려하고있었는데 해당 내용 롤백시켜줘 그냥 지금처럼 갈게.
+
+## 2026-10-28 11:35
+
+/tdd 회차이_좌석_목록을_조회하면_각_좌석의_열과_번호가_보인다 -> 회차의_좌석목록을 조회하면 각 좌석의 열,번호, 가격,상태가 보인다 로 수정하고, 한번에 검증하고 구현해줘
+
+## 2026-10-28 11:35
+
+그리고 공연이 존재하는 지, 공연회차가 존재하는지도 검증해야하잖아? 이 부분에 대해서, 공연/.공연회차의 service단의 메서드를 재사용해서 구현해줘
+
+## 2026-10-28 11:40
+
+아 오케이 회차조회시점에는 공연이 무조건 있겠구나. 
+
+너가 말한대로 Aㅅ선택지로 가자. 오류코드도 추가해주고, 재사용 하는 방식으로 가는게 좋겠어. 그리고 dto에서 getPrice를 지속적으로 사용하는데 이게 같은 회차니까 n+1은 생기지 않겠지만, 그래도 service에서 가격을 먼저 가져오고 그걸 dto 팩터리 메서드에 넘겨주는 방식으로 구현하는게 좋을 것 같아.
+
+## 2026-10-28 11:43
+
+응 그리고 추가로 showTimeService에서도 performanceRepository를 사용하는 로직을 PerformanceService로 이동시키고 재사용하는 방시긍로 가자
+
+## 2026-10-28 11:46
+
+return toResponses(findSeatsOf(showtimeId), showtime.getPrice()); 이거 그냥 다시 롤백시켜줘 그리고 두 커밋으로 나눠서 커밋해줘 프롬프트도 커밋해주면 돼.
+
