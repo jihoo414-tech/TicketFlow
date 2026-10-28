@@ -17,7 +17,7 @@ public class SeatService {
 
     @Transactional(readOnly = true)
     public List<SeatResponse> getSeats(Long showtimeId) {
-        showtimeService.getShowtime(showtimeId);
+        showtimeService.validateShowtimeExists(showtimeId);
         return toResponses(findSeatsOf(showtimeId));
     }
 
