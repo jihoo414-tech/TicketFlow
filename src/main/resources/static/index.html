@@ -30,6 +30,44 @@
         .message {
             color: #666;
         }
+        .showtime {
+            cursor: pointer;
+        }
+        .showtime.selected {
+            border-color: #333;
+        }
+        .stage {
+            text-align: center;
+            padding: 4px;
+            margin-bottom: 16px;
+            background: #eee;
+            border-radius: 4px;
+            color: #666;
+        }
+        .seat-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .seat-row-label {
+            width: 24px;
+            font-weight: bold;
+        }
+        .seat {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #999;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .seat.available {
+            background: #e6f4ea;
+            border-color: #4caf50;
+        }
     </style>
 </head>
 <body>
@@ -43,6 +81,16 @@
     <ul id="showtimes"></ul>
 </section>
 
+<section id="seat-section" hidden>
+    <h2 id="seat-title"></h2>
+    <p id="seat-message" class="message"></p>
+    <div id="seat-map" hidden>
+        <div class="stage">무대</div>
+        <div id="seat-rows"></div>
+        <p id="seat-price"></p>
+    </div>
+</section>
+
 <script>
     const message = document.getElementById('message');
     const list = document.getElementById('performances');
@@ -50,6 +98,16 @@
     const showtimeTitle = document.getElementById('showtime-title');
     const showtimeMessage = document.getElementById('showtime-message');
     const showtimeList = document.getElementById('showtimes');
+    const seatSection = document.getElementById('seat-section');
+    const seatTitle = document.getElementById('seat-title');
+    const seatMessage = document.getElementById('seat-message');
+    const seatMap = document.getElementById('seat-map');
+    const seatRows = document.getElementById('seat-rows');
+    const seatPrice = document.getElementById('seat-price');
+
+    const SEAT_STATUS_CLASS = {
+        AVAILABLE: 'available'
+    };
 
     function formatDateTime(value) {
         return value.slice(0, 16).replace('T', ' ');
@@ -95,6 +153,7 @@
         showtimeMessage.hidden = false;
         showtimeMessage.textContent = '불러오는 중...';
         showtimeList.replaceChildren();
+        seatSection.hidden = true;
 
         try {
             const response = await fetch(`/api/performances/${performance.id}/showtimes`);
@@ -115,6 +174,8 @@
             showtimeMessage.hidden = true;
             for (const showtime of showtimes) {
                 const item = document.createElement('li');
+                item.className = 'showtime';
+                item.addEventListener('click', () => selectShowtime(item, showtime));
                 item.textContent = `${formatDateTime(showtime.startsAt)} · `
                     + `${showtime.price.toLocaleString('ko-KR')}원 · `
                     + `예매 오픈 ${formatDateTime(showtime.bookingOpenAt)}`;
@@ -123,6 +184,71 @@
         } catch (error) {
             showtimeMessage.textContent = '회차 목록을 불러오지 못했습니다.';
         }
+    }
+
+    function selectShowtime(item, showtime) {
+        for (const other of showtimeList.children) {
+            other.classList.remove('selected');
+        }
+        item.classList.add('selected');
+        loadSeats(showtime);
+    }
+
+    async function loadSeats(showtime) {
+        seatSection.hidden = false;
+        seatTitle.textContent = formatDateTime(showtime.startsAt) + ' 좌석';
+        seatMessage.hidden = false;
+        seatMessage.textContent = '불러오는 중...';
+        seatMap.hidden = true;
+        seatRows.replaceChildren();
+
+        try {
+            const response = await fetch(`/api/showtimes/${showtime.id}/seats`);
+            if (response.status === 404) {
+                seatMessage.textContent = '존재하지 않는 회차입니다.';
+                return;
+            }
+            if (!response.ok) {
+                throw new Error(response.status);
+            }
+            const seats = await response.json();
+
+            if (seats.length === 0) {
+                seatMessage.textContent = '등록된 좌석이 없습니다.';
+                return;
+            }
+
+            seatMessage.hidden = true;
+            renderSeatMap(seats);
+            seatMap.hidden = false;
+        } catch (error) {
+            seatMessage.textContent = '좌석 배치도를 불러오지 못했습니다.';
+        }
+    }
+
+    function renderSeatMap(seats) {
+        const rows = Map.groupBy(seats, seat => seat.row);
+        for (const [row, rowSeats] of rows) {
+            const rowElement = document.createElement('div');
+            rowElement.className = 'seat-row';
+
+            const label = document.createElement('span');
+            label.className = 'seat-row-label';
+            label.textContent = row;
+            rowElement.appendChild(label);
+
+            for (const seat of rowSeats) {
+                const seatElement = document.createElement('span');
+                seatElement.className = 'seat ' + (SEAT_STATUS_CLASS[seat.status] ?? '');
+                seatElement.textContent = seat.number;
+                seatElement.title = `${seat.row}열 ${seat.number}번 · ${seat.price.toLocaleString('ko-KR')}원`;
+                rowElement.appendChild(seatElement);
+            }
+            seatRows.appendChild(rowElement);
+        }
+
+        const prices = [...new Set(seats.map(seat => seat.price))];
+        seatPrice.textContent = '가격: ' + prices.map(price => price.toLocaleString('ko-KR') + '원').join(', ');
     }
 
     loadPerformances();
