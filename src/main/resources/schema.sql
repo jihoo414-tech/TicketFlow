@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS reservation;
 DROP TABLE IF EXISTS hold_seat;
 DROP TABLE IF EXISTS hold;
 DROP TABLE IF EXISTS seat;
@@ -55,4 +56,14 @@ CREATE TABLE hold_seat (
     PRIMARY KEY (id),
     FOREIGN KEY (hold_id) REFERENCES hold (id),
     FOREIGN KEY (seat_id) REFERENCES seat (id)
+);
+
+CREATE TABLE reservation (
+    id        BIGINT NOT NULL AUTO_INCREMENT,
+    hold_id   BIGINT NOT NULL,
+    member_id BIGINT NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (hold_id) REFERENCES hold (id),
+    FOREIGN KEY (member_id) REFERENCES member (id),
+    UNIQUE KEY uk_reservation_hold (hold_id)
 );

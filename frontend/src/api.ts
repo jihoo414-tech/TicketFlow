@@ -1,10 +1,11 @@
 export type Member = { id: number; name: string };
 export type Performance = { id: number; title: string };
 export type Showtime = { id: number; startsAt: string; bookingOpenAt: string; price: number };
-export type SeatStatus = 'AVAILABLE' | 'HELD';
+export type SeatStatus = 'AVAILABLE' | 'HELD' | 'RESERVED';
 export type Seat = { id: number; row: string; number: number; price: number; status: SeatStatus };
 export type HoldSeat = { id: number; row: string; number: number };
 export type Hold = { id: number; seats: HoldSeat[]; expiresAt: string };
+export type Reservation = { id: number; holdId: number; memberId: number };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -56,4 +57,5 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ seatIds }),
     }),
+  pay: (holdId: number) => request<Reservation>(`/api/holds/${holdId}/payment`, { method: 'POST' }),
 };

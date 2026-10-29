@@ -96,6 +96,126 @@ class HoldApiTest {
     }
 
     @Test
+    void 이미_선점이_있는_회차에서_다시_선점하면_실패한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(3);
+        List<Long> seatIds = fixture.seatIds();
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(0), seatIds.get(1)))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(2)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("HOLD_ALREADY_EXISTS"));
+    }
+
+    @Test
+    void 다른_회차에서는_따로_선점할_수_있다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        HoldFixture otherShowtimeFixture = holdFixtureFactory.createHoldFixture(1);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(fixture.seatIds())))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", otherShowtimeFixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(otherShowtimeFixture.seatIds())))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void 같은_좌석을_중복해서_요청하면_선점이_실패한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        Long seatId = fixture.seatIds().get(0);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatId, seatId))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_SEAT"));
+    }
+
+    @Test
+    void 존재하지_않는_좌석이_포함되면_선점이_실패한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        Long missingSeatId = Long.MAX_VALUE;
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(fixture.seatIds().get(0), missingSeatId))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("SEAT_NOT_FOUND"));
+    }
+
+    @Test
+    void 다른_회차의_좌석이_섞여_있으면_선점이_실패한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        HoldFixture otherShowtimeFixture = holdFixtureFactory.createHoldFixture(1);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(fixture.seatIds().get(0), otherShowtimeFixture.seatIds().get(0)))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SEAT_NOT_IN_SHOWTIME"));
+    }
+
+    @Test
+    void 선점이_만료된_회차에서는_다시_선점할_수_있다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(2);
+        List<Long> seatIds = fixture.seatIds();
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(0)))))
+                .andExpect(status().isCreated());
+
+        testClock.advance(Duration.ofMinutes(5));
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(1)))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void 선점_만료된_좌석은_다른_회원이_선점할_수_있다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
         Member otherMember = memberRepository.save(new Member("회원2"));
