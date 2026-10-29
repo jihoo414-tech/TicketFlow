@@ -24,7 +24,7 @@ public class Reservation {
     @JoinColumn(name = "member_id")
     private Member member;
 
-    public Reservation(Hold hold, Member member) {
+    Reservation(Hold hold, Member member) {
         this.hold = hold;
         this.member = member;
     }
