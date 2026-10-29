@@ -192,7 +192,7 @@ class HoldApiTest {
 
     @Test
     void 선점이_만료된_회차에서는_다시_선점할_수_있다() throws Exception {
-        HoldFixture fixture = holdFixtureFactory.createHoldFixture(2);
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(8);
         List<Long> seatIds = fixture.seatIds();
         testClock.setTo(BOOKING_OPEN_AT);
 
@@ -201,7 +201,7 @@ class HoldApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
-                                """.formatted(List.of(seatIds.get(0)))))
+                                """.formatted(seatIds.subList(0, 4))))
                 .andExpect(status().isCreated());
 
         testClock.advance(Duration.ofMinutes(5));
@@ -211,7 +211,7 @@ class HoldApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
-                                """.formatted(List.of(seatIds.get(1)))))
+                                """.formatted(seatIds.subList(4, 8))))
                 .andExpect(status().isCreated());
     }
 
@@ -258,6 +258,26 @@ class HoldApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].number").value(contains(1, 2, 3)))
                 .andExpect(jsonPath("$[*].status").value(contains("HELD", "HELD", "AVAILABLE")));
+    }
+
+    @Test
+    void 선점_만료_시각이_지나면_회차의_좌석을_조회할때_빈_좌석으로_보인다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(2);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(fixture.seatIds())))
+                .andExpect(status().isCreated());
+
+        testClock.advance(Duration.ofMinutes(5));
+
+        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].status").value(contains("AVAILABLE", "AVAILABLE")));
     }
 
     @Test
