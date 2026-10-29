@@ -11,6 +11,7 @@ public enum ErrorCode {
     PERFORMANCE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 공연입니다."),
     SHOWTIME_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 회차입니다."),
     HOLD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 선점입니다."),
+    SEAT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 좌석이 포함되어 있습니다."),
 
 
 
