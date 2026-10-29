@@ -40,9 +40,10 @@ public class HoldService {
         Showtime showtime = showtimeService.findShowtime(showtimeId);
 
         List<Seat> seats = seatService.findLockedSeats(seatIds);
-        Hold hold = Hold.create(member, showtime, seats, now());
+        LocalDateTime now = now();
+        Hold hold = Hold.create(member, showtime, seats, now);
 
-        validateSeatsNotHeld(seatIds);
+        validateSeatsNotHeld(seatIds, now);
 
         saveHold(hold);
         saveHoldSeats(hold, seats);
@@ -50,8 +51,10 @@ public class HoldService {
         return toResponse(hold, seats);
     }
 
-    private void validateSeatsNotHeld(List<Long> seatIds) {
-        if (holdSeatRepository.existsBySeatIdIn(seatIds)) {
+    private void validateSeatsNotHeld(List<Long> seatIds, LocalDateTime now) {
+        boolean anyOccupied = holdSeatRepository.findAllWithHoldBySeatIdIn(seatIds).stream()
+                .anyMatch(holdSeat -> holdSeat.getHold().isOccupying(now));
+        if (anyOccupied) {
             throw new BusinessException(ErrorCode.SEAT_ALREADY_HELD);
         }
     }

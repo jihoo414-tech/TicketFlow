@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.List;
 
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
@@ -90,6 +91,31 @@ class HoldApiTest {
                                 """.formatted(List.of(seatIds.get(1), seatIds.get(2)))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("SEAT_ALREADY_HELD"));
+    }
+
+    @Test
+    void 선점_만료된_좌석은_다른_회원이_선점할_수_있다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        Member otherMember = memberRepository.save(new Member("회원2"));
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(fixture.seatIds())))
+                .andExpect(status().isCreated());
+
+        testClock.advance(Duration.ofMinutes(5));
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", otherMember.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(fixture.seatIds())))
+                .andExpect(status().isCreated());
     }
 
     @Test
