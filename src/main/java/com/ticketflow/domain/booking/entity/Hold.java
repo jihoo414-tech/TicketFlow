@@ -45,6 +45,7 @@ public class Hold {
     }
 
     public static Hold create(Member member, Showtime showtime, LocalDateTime now) {
+        showtime.validateBookingOpen(now);
         return new Hold(member, showtime, HoldStatus.HELD, now.plus(HOLD_DURATION));
     }
 }
