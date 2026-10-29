@@ -55,6 +55,12 @@ public class Hold {
         return new Hold(member, showtime, HoldStatus.HELD, now.plus(HOLD_DURATION));
     }
 
+    public static void validateSeatLimit(long reservedSeatCount, int seatCount) {
+        if (reservedSeatCount + seatCount > MAX_SEAT_COUNT) {
+            throw new BusinessException(ErrorCode.SEAT_LIMIT_EXCEEDED);
+        }
+    }
+
     public Reservation reserve(LocalDateTime paidAt) {
         validateHeld(paidAt);
         this.status = HoldStatus.RESERVED;
@@ -74,7 +80,7 @@ public class Hold {
     }
 
     public boolean isOccupying(LocalDateTime now) {
-        return now.isBefore(expiresAt);
+        return status == HoldStatus.RESERVED || isHeld(now);
     }
 
     private void validateHeld(LocalDateTime now) {

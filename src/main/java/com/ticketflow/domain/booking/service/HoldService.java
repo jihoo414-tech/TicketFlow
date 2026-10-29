@@ -5,6 +5,7 @@ import com.ticketflow.domain.booking.dto.SeatResponse;
 import com.ticketflow.domain.booking.dto.SeatStatus;
 import com.ticketflow.domain.booking.entity.Hold;
 import com.ticketflow.domain.booking.entity.HoldSeat;
+import com.ticketflow.domain.booking.entity.HoldStatus;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
 import com.ticketflow.domain.member.entity.Member;
@@ -48,6 +49,7 @@ public class HoldService {
         Hold hold = Hold.create(member, showtime, seats, now);
 
         validateNoActiveHold(memberId, showtimeId, now);
+        validateSeatLimit(memberId, showtimeId, seats);
         validateSeatsNotHeld(seatIds, now);
 
         saveHold(hold);
@@ -84,10 +86,16 @@ public class HoldService {
 
     private void validateNoActiveHold(Long memberId, Long showtimeId, LocalDateTime now) {
         boolean hasActiveHold = holdRepository.findAllByMemberIdAndShowtimeId(memberId, showtimeId).stream()
-                .anyMatch(hold -> hold.isOccupying(now));
+                .anyMatch(hold -> hold.isHeld(now));
         if (hasActiveHold) {
             throw new BusinessException(ErrorCode.HOLD_ALREADY_EXISTS);
         }
+    }
+
+    private void validateSeatLimit(Long memberId, Long showtimeId, List<Seat> seats) {
+        long reservedSeatCount = holdSeatRepository.countByMemberIdAndShowtimeIdAndStatus(
+                memberId, showtimeId, HoldStatus.RESERVED);
+        Hold.validateSeatLimit(reservedSeatCount, seats.size());
     }
 
     private void validateSeatsNotHeld(List<Long> seatIds, LocalDateTime now) {
