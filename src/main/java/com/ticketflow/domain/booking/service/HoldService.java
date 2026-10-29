@@ -24,6 +24,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +40,8 @@ public class HoldService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
+        validateNoDuplicateSeats(seatIds);
+
         LockedOccupancy locked = seatOccupancyLock.acquire(memberId, seatIds);
         Showtime showtime = showtimeService.findShowtime(showtimeId);
 
@@ -79,6 +82,12 @@ public class HoldService {
         return holdSeatRepository.findAllWithHoldByShowtimeId(showtimeId).stream()
                 .filter(holdSeat -> holdSeat.isOccupying(now))
                 .collect(Collectors.toMap(holdSeat -> holdSeat.getSeat().getId(), this::statusOf));
+    }
+
+    private void validateNoDuplicateSeats(List<Long> seatIds) {
+        if (Set.copyOf(seatIds).size() != seatIds.size()) {
+            throw new BusinessException(ErrorCode.DUPLICATE_SEAT);
+        }
     }
 
     private void validateNoActiveHold(Long memberId, Long showtimeId, LocalDateTime now) {
