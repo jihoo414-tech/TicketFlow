@@ -40,9 +40,12 @@ public class HoldService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
+
         validateNoDuplicateSeats(seatIds);
 
         LockedOccupancy locked = seatOccupancyLock.acquire(memberId, seatIds);
+
+
         Showtime showtime = showtimeService.findShowtime(showtimeId);
 
         List<Seat> seats = locked.seats();
