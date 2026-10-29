@@ -21,6 +21,8 @@ import java.time.Duration;
 import java.util.List;
 
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
+import static org.hamcrest.Matchers.contains;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,6 +82,20 @@ class ReservationApiTest {
                                 """.formatted(fixture.seatIds())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("SEAT_ALREADY_HELD"));
+    }
+
+    @Test
+    void 회차의_좌석을_조회할때_예매된_좌석이_반영된다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(3);
+        List<Long> seatIds = fixture.seatIds();
+        testClock.setTo(BOOKING_OPEN_AT);
+        Long holdId = hold(fixture.member(), fixture, List.of(seatIds.get(0), seatIds.get(1)));
+        pay(fixture.member(), holdId);
+
+        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].number").value(contains(1, 2, 3)))
+                .andExpect(jsonPath("$[*].status").value(contains("RESERVED", "RESERVED", "AVAILABLE")));
     }
 
     @Test
