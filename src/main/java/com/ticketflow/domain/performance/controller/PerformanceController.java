@@ -17,8 +17,7 @@ public class PerformanceController {
 
     @GetMapping("/api/performances")
     public ResponseEntity<List<PerformanceResponse>> getPerformances() {
-        List<PerformanceResponse> performanceResponseList = performanceService.getPerformances();
 
-        return ResponseEntity.ok(performanceResponseList);
+        return ResponseEntity.ok(performanceService.getPerformances());
     }
 }
