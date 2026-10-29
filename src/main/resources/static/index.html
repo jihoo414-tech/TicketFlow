@@ -75,6 +75,37 @@
         .seat.available {
             background: #e6f4ea;
             border-color: #4caf50;
+            cursor: pointer;
+        }
+        .seat.available.selected {
+            background: #4caf50;
+            color: #fff;
+        }
+        .seat.held {
+            background: #eee;
+            border-color: #ccc;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+        .seat-legend {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .seat-legend .seat {
+            width: 16px;
+            height: 16px;
+            cursor: default;
+        }
+        .hold-result {
+            padding: 12px 16px;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+        }
+        .error {
+            color: #c62828;
         }
     </style>
 </head>
@@ -102,7 +133,15 @@
     <div id="seat-map" hidden>
         <div class="stage">무대</div>
         <div id="seat-rows"></div>
+        <p class="seat-legend">
+            <span class="seat available"></span>선택 가능
+            <span class="seat held"></span>선점됨
+        </p>
         <p id="seat-price"></p>
+        <p id="selected-seats" class="message">선택한 좌석이 없습니다.</p>
+        <button id="hold-button" type="button" disabled>선점하기</button>
+        <p id="hold-message" class="message"></p>
+        <div id="hold-result" class="hold-result" hidden></div>
     </div>
 </section>
 
@@ -120,9 +159,18 @@
     const seatMap = document.getElementById('seat-map');
     const seatRows = document.getElementById('seat-rows');
     const seatPrice = document.getElementById('seat-price');
+    const selectedSeatsText = document.getElementById('selected-seats');
+    const holdButton = document.getElementById('hold-button');
+    const holdMessage = document.getElementById('hold-message');
+    const holdResult = document.getElementById('hold-result');
+
+    let currentShowtime = null;
+    let holdTimer = null;
+    const selectedSeats = new Map();
 
     const SEAT_STATUS_CLASS = {
-        AVAILABLE: 'available'
+        AVAILABLE: 'available',
+        HELD: 'held'
     };
 
     function formatDateTime(value) {
@@ -247,10 +295,19 @@
         seatMessage.hidden = false;
         seatMessage.textContent = '불러오는 중...';
         seatMap.hidden = true;
-        seatRows.replaceChildren();
+        currentShowtime = showtime;
+        resetHoldForm();
+        clearHoldResult();
+        await reloadSeatMap();
+    }
 
+    async function reloadSeatMap() {
+        const showtime = currentShowtime;
         try {
             const response = await apiFetch(`/api/showtimes/${showtime.id}/seats`);
+            if (showtime !== currentShowtime) {
+                return;
+            }
             if (response.status === 404) {
                 seatMessage.textContent = '존재하지 않는 회차입니다.';
                 return;
@@ -266,9 +323,12 @@
             }
 
             seatMessage.hidden = true;
+            clearSelection();
+            seatRows.replaceChildren();
             renderSeatMap(seats);
             seatMap.hidden = false;
         } catch (error) {
+            seatMessage.hidden = false;
             seatMessage.textContent = '좌석 배치도를 불러오지 못했습니다.';
         }
     }
@@ -289,6 +349,9 @@
                 seatElement.className = 'seat ' + (SEAT_STATUS_CLASS[seat.status] ?? '');
                 seatElement.textContent = seat.number;
                 seatElement.title = `${seat.row}열 ${seat.number}번 · ${seat.price.toLocaleString('ko-KR')}원`;
+                if (seat.status === 'AVAILABLE') {
+                    seatElement.addEventListener('click', () => toggleSeat(seatElement, seat));
+                }
                 rowElement.appendChild(seatElement);
             }
             seatRows.appendChild(rowElement);
@@ -297,6 +360,130 @@
         const prices = [...new Set(seats.map(seat => seat.price))];
         seatPrice.textContent = '가격: ' + prices.map(price => price.toLocaleString('ko-KR') + '원').join(', ');
     }
+
+    function formatSeat(seat) {
+        return `${seat.row}${seat.number}`;
+    }
+
+    function toggleSeat(seatElement, seat) {
+        if (selectedSeats.has(seat.id)) {
+            selectedSeats.delete(seat.id);
+            seatElement.classList.remove('selected');
+        } else {
+            selectedSeats.set(seat.id, { seat, element: seatElement });
+            seatElement.classList.add('selected');
+        }
+        renderSelectedSeats();
+    }
+
+    function renderSelectedSeats() {
+        const seats = [...selectedSeats.values()].map(selected => selected.seat);
+        selectedSeatsText.textContent = seats.length === 0
+            ? '선택한 좌석이 없습니다.'
+            : '선택한 좌석: ' + seats.map(formatSeat).join(', ');
+        holdButton.disabled = seats.length === 0;
+    }
+
+    function clearSelection() {
+        for (const selected of selectedSeats.values()) {
+            selected.element.classList.remove('selected');
+        }
+        selectedSeats.clear();
+        renderSelectedSeats();
+    }
+
+    function resetHoldForm() {
+        clearSelection();
+        holdMessage.textContent = '';
+        holdMessage.classList.remove('error');
+    }
+
+    async function holdSeats() {
+        holdButton.disabled = true;
+        holdMessage.classList.remove('error');
+        holdMessage.textContent = '선점 요청 중...';
+
+        try {
+            const response = await apiFetch(`/api/showtimes/${currentShowtime.id}/holds`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seatIds: [...selectedSeats.keys()] })
+            });
+            const body = await response.json();
+            if (!response.ok) {
+                if (body.code === 'SEAT_ALREADY_HELD') {
+                    await reloadSeatMap();
+                }
+                showHoldError(body.detail ?? `선점에 실패했습니다. (${response.status})`);
+                return;
+            }
+
+            resetHoldForm();
+            renderHoldResult(body);
+            await reloadSeatMap();
+        } catch (error) {
+            showHoldError('선점 요청을 보내지 못했습니다.');
+        }
+    }
+
+    function showHoldError(text) {
+        holdMessage.classList.add('error');
+        holdMessage.textContent = text;
+        holdButton.disabled = selectedSeats.size === 0;
+    }
+
+    function renderHoldResult(hold) {
+        clearHoldResult();
+        const remainingLine = createLine('');
+        holdResult.replaceChildren(
+            createLine(`선점 #${hold.id} 성공`),
+            createLine('좌석: ' + hold.seats.map(formatSeat).join(', ')),
+            createLine('만료: ' + hold.expiresAt.slice(0, 19).replace('T', ' ')),
+            remainingLine
+        );
+        holdResult.hidden = false;
+        startHoldTimer(new Date(hold.expiresAt.slice(0, 19)), remainingLine);
+    }
+
+    function startHoldTimer(expiresAt, remainingLine) {
+        const tick = () => {
+            const remainingMs = expiresAt - Date.now();
+            if (remainingMs <= 0) {
+                stopHoldTimer();
+                remainingLine.textContent = '선점이 만료되었습니다.';
+                reloadSeatMap();
+                return;
+            }
+            remainingLine.textContent = '남은 시간: ' + formatRemaining(remainingMs);
+        };
+        tick();
+        holdTimer = setInterval(tick, 1000);
+    }
+
+    function formatRemaining(ms) {
+        const totalSeconds = Math.ceil(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = String(totalSeconds % 60).padStart(2, '0');
+        return `${minutes}:${seconds}`;
+    }
+
+    function stopHoldTimer() {
+        clearInterval(holdTimer);
+        holdTimer = null;
+    }
+
+    function clearHoldResult() {
+        stopHoldTimer();
+        holdResult.hidden = true;
+    }
+
+    function createLine(text) {
+        const line = document.createElement('p');
+        line.textContent = text;
+        return line;
+    }
+
+    holdButton.addEventListener('click', holdSeats);
 
     loadMembers();
     loadPerformances();
