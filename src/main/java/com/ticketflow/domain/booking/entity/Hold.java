@@ -52,6 +52,7 @@ public class Hold {
     public static Hold create(Member member, Showtime showtime, List<Seat> seats, LocalDateTime now) {
         showtime.validateBookingOpen(now);
         validateSeatCount(seats);
+        validateSeatsInShowtime(showtime, seats);
         return new Hold(member, showtime, HoldStatus.HELD, now.plus(HOLD_DURATION));
     }
 
@@ -92,6 +93,12 @@ public class Hold {
     private static void validateSeatCount(List<Seat> seats) {
         if (seats.isEmpty() || seats.size() > MAX_SEAT_COUNT) {
             throw new BusinessException(ErrorCode.INVALID_SEAT_COUNT);
+        }
+    }
+
+    private static void validateSeatsInShowtime(Showtime showtime, List<Seat> seats) {
+        if (!seats.stream().allMatch(seat -> seat.belongsTo(showtime))) {
+            throw new BusinessException(ErrorCode.SEAT_NOT_IN_SHOWTIME);
         }
     }
 }
