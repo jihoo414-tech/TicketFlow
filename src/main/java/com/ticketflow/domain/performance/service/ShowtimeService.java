@@ -24,13 +24,6 @@ public class ShowtimeService {
     }
 
     @Transactional(readOnly = true)
-    public void validateShowtimeExists(Long showtimeId) {
-        if (!showtimeRepository.existsById(showtimeId)) {
-            throw new BusinessException(ErrorCode.SHOWTIME_NOT_FOUND);
-        }
-    }
-
-    @Transactional(readOnly = true)
     public Showtime findShowtime(Long showtimeId) {
         return showtimeRepository.findById(showtimeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SHOWTIME_NOT_FOUND));

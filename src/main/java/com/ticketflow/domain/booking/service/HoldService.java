@@ -1,6 +1,8 @@
 package com.ticketflow.domain.booking.service;
 
 import com.ticketflow.domain.booking.dto.HoldResponse;
+import com.ticketflow.domain.booking.dto.SeatResponse;
+import com.ticketflow.domain.booking.dto.SeatStatus;
 import com.ticketflow.domain.booking.entity.Hold;
 import com.ticketflow.domain.booking.entity.HoldSeat;
 import com.ticketflow.domain.booking.repository.HoldRepository;
@@ -21,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,9 +55,24 @@ public class HoldService {
         return toResponse(hold, seats);
     }
 
+    @Transactional(readOnly = true)
+    public List<SeatResponse> getSeats(Long showtimeId) {
+        Showtime showtime = showtimeService.findShowtime(showtimeId);
+        List<Seat> seats = seatService.findSeats(showtime);
+        Set<Long> occupiedSeatIds = findOccupiedSeatIds(showtimeId, now());
+        return toSeatResponses(seats, showtime.getPrice(), occupiedSeatIds);
+    }
+
+    private Set<Long> findOccupiedSeatIds(Long showtimeId, LocalDateTime now) {
+        return holdSeatRepository.findAllWithHoldByShowtimeId(showtimeId).stream()
+                .filter(holdSeat -> holdSeat.isOccupying(now))
+                .map(holdSeat -> holdSeat.getSeat().getId())
+                .collect(Collectors.toSet());
+    }
+
     private void validateSeatsNotHeld(List<Long> seatIds, LocalDateTime now) {
         boolean anyOccupied = holdSeatRepository.findAllWithHoldBySeatIdIn(seatIds).stream()
-                .anyMatch(holdSeat -> holdSeat.getHold().isOccupying(now));
+                .anyMatch(holdSeat -> holdSeat.isOccupying(now));
         if (anyOccupied) {
             throw new BusinessException(ErrorCode.SEAT_ALREADY_HELD);
         }
@@ -75,5 +94,15 @@ public class HoldService {
 
     private HoldResponse toResponse(Hold hold, List<Seat> seats) {
         return HoldResponse.of(hold.getId(), seats, hold.getExpiresAt());
+    }
+
+    private List<SeatResponse> toSeatResponses(List<Seat> seats, int price, Set<Long> occupiedSeatIds) {
+        return seats.stream()
+                .map(seat -> SeatResponse.of(seat, price, statusOf(seat, occupiedSeatIds)))
+                .toList();
+    }
+
+    private SeatStatus statusOf(Seat seat, Set<Long> occupiedSeatIds) {
+        return occupiedSeatIds.contains(seat.getId()) ? SeatStatus.HELD : SeatStatus.AVAILABLE;
     }
 }
