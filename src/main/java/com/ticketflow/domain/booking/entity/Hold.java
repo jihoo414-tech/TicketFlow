@@ -55,6 +55,10 @@ public class Hold {
         return new Hold(member, showtime, HoldStatus.HELD, now.plus(HOLD_DURATION));
     }
 
+    public boolean isOccupying(LocalDateTime now) {
+        return now.isBefore(expiresAt);
+    }
+
     private static void validateSeatCount(List<Seat> seats) {
         if (seats.isEmpty() || seats.size() > MAX_SEAT_COUNT) {
             throw new BusinessException(ErrorCode.INVALID_SEAT_COUNT);

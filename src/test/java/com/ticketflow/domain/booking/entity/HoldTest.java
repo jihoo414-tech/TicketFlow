@@ -64,6 +64,20 @@ class HoldTest {
                 .isEqualTo(ErrorCode.INVALID_SEAT_COUNT);
     }
 
+    @Test
+    void 선점_만료_시각_1초_전에는_선점이_좌석을_차지한다() {
+        Hold hold = Hold.create(MEMBER, SHOWTIME, seats(1), BOOKING_OPEN_AT);
+
+        assertThat(hold.isOccupying(BOOKING_OPEN_AT.plusMinutes(5).minusSeconds(1))).isTrue();
+    }
+
+    @Test
+    void 선점_만료_시각_정각에는_선점이_좌석을_차지하지_않는다() {
+        Hold hold = Hold.create(MEMBER, SHOWTIME, seats(1), BOOKING_OPEN_AT);
+
+        assertThat(hold.isOccupying(BOOKING_OPEN_AT.plusMinutes(5))).isFalse();
+    }
+
     private static List<Seat> seats(int count) {
         return IntStream.rangeClosed(1, count)
                 .mapToObj(seatNo -> new Seat(SHOWTIME, "A", seatNo))
