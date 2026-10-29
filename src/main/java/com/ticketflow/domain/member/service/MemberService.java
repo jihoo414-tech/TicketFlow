@@ -39,6 +39,12 @@ public class MemberService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
+    @Transactional
+    public Member findLockedMember(Long memberId) {
+        return memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+    }
+
     private List<Member> findAllMembers() {
         return memberRepository.findAll();
     }

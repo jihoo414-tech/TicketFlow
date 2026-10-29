@@ -39,7 +39,7 @@ public class HoldService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
-        Member member = memberService.findMember(memberId);
+        Member member = memberService.findLockedMember(memberId);
 
         Showtime showtime = showtimeService.findShowtime(showtimeId);
 
