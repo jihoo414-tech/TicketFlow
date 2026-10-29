@@ -1,4 +1,4 @@
-package com.ticketflow.domain.performance.dto;
+package com.ticketflow.domain.booking.dto;
 
 import com.ticketflow.domain.performance.entity.Seat;
 
@@ -7,16 +7,16 @@ public record SeatResponse(
         String row,
         int number,
         int price,
-        String status
+        SeatStatus status
 ) {
 
-    public static SeatResponse from(Seat seat) {
+    public static SeatResponse of(Seat seat, int price, SeatStatus status) {
         return new SeatResponse(
                 seat.getId(),
                 seat.getSeatRow(),
                 seat.getSeatNo(),
-                seat.getShowtime().getPrice(),
-                "AVAILABLE"
+                price,
+                status
         );
     }
 }
