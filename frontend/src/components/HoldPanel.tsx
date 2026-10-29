@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Hold, Seat } from '../api';
+import type { Hold, Reservation, Seat } from '../api';
 import { formatDateTime, formatPrice, formatRemaining, formatSeat, parseLocalDateTime } from '../format';
 
 export const MAX_SEATS = 4;
@@ -7,12 +7,15 @@ const URGENT_MS = 60_000;
 
 type Props = {
   hold: Hold | null;
+  reservation: Reservation | null;
   now: number;
   selectedSeats: Seat[];
   bookingOpen: boolean;
   bookingOpenAt: string;
   holding: boolean;
+  paying: boolean;
   onHold: () => void;
+  onPay: () => void;
   onReset: () => void;
 };
 
@@ -24,10 +27,26 @@ function PanelFrame({ children }: { children: ReactNode }) {
   );
 }
 
-export default function HoldPanel({ hold, now, selectedSeats, bookingOpen, bookingOpenAt, holding, onHold, onReset }: Props) {
+export default function HoldPanel({
+  hold, reservation, now, selectedSeats, bookingOpen, bookingOpenAt, holding, paying, onHold, onPay, onReset,
+}: Props) {
   if (hold) {
     const remainingMs = parseLocalDateTime(hold.expiresAt).getTime() - now;
     const seatsText = hold.seats.map(formatSeat).join(', ');
+
+    if (reservation) {
+      return (
+        <PanelFrame>
+          <div>
+            <p className="font-semibold text-gray-900">예매 완료 · {seatsText}</p>
+            <p className="mt-1 text-sm text-gray-500">예매 번호 {reservation.id}</p>
+          </div>
+          <button type="button" onClick={onReset} className="rounded-lg bg-violet-600 px-5 py-2.5 font-semibold text-white hover:bg-violet-700">
+            다른 좌석 고르기
+          </button>
+        </PanelFrame>
+      );
+    }
 
     if (remainingMs <= 0) {
       return (
@@ -49,12 +68,20 @@ export default function HoldPanel({ hold, now, selectedSeats, bookingOpen, booki
           <p className="font-semibold text-gray-900">선점 완료 · {seatsText}</p>
           <p className="mt-1 text-sm text-gray-500">시간 안에 결제하지 않으면 좌석이 다시 열립니다.</p>
         </div>
-        <div className="text-right">
+        <div className="ml-auto text-right">
           <p className="text-xs text-gray-500">남은 시간</p>
           <p className={`text-2xl font-bold tabular-nums ${remainingMs <= URGENT_MS ? 'text-red-600' : 'text-violet-700'}`}>
             {formatRemaining(remainingMs)}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={onPay}
+          disabled={paying}
+          className="rounded-lg bg-violet-600 px-5 py-2.5 font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+        >
+          {paying ? '결제 중...' : '결제하기'}
+        </button>
       </PanelFrame>
     );
   }

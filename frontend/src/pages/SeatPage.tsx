@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, type Hold, type Seat } from '../api';
+import { api, type Hold, type Reservation, type Seat } from '../api';
 import HoldPanel, { MAX_SEATS } from '../components/HoldPanel';
 import SeatMap from '../components/SeatMap';
 import StatusMessage from '../components/StatusMessage';
@@ -38,6 +38,8 @@ export default function SeatPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [hold, setHold] = useState<Hold | null>(null);
   const [holding, setHolding] = useState(false);
+  const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [paying, setPaying] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const dismissNotice = useCallback(() => setNotice(null), []);
 
@@ -57,7 +59,7 @@ export default function SeatPage() {
     reloadSeats();
   }, [reloadSeats]);
 
-  const holdExpired = hold !== null && parseLocalDateTime(hold.expiresAt).getTime() <= now;
+  const holdExpired = hold !== null && reservation === null && parseLocalDateTime(hold.expiresAt).getTime() <= now;
   useEffect(() => {
     if (holdExpired) {
       reloadSeats();
@@ -93,6 +95,30 @@ export default function SeatPage() {
     } finally {
       setHolding(false);
     }
+  };
+
+  const submitPay = async () => {
+    if (!hold) {
+      return;
+    }
+    setPaying(true);
+    try {
+      setReservation(await api.pay(hold.id));
+      await reloadSeats();
+    } catch (error) {
+      const apiError = toApiError(error);
+      setNotice(apiError.message);
+      if (apiError.code === 'HOLD_EXPIRED') {
+        await reloadSeats();
+      }
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const resetHold = () => {
+    setHold(null);
+    setReservation(null);
   };
 
   if (info.status === 'loading') {
@@ -136,13 +162,16 @@ export default function SeatPage() {
 
       <HoldPanel
         hold={hold}
+        reservation={reservation}
         now={now}
         selectedSeats={selectedSeats}
         bookingOpen={bookingOpen}
         bookingOpenAt={showtime.bookingOpenAt}
         holding={holding}
+        paying={paying}
         onHold={submitHold}
-        onReset={() => setHold(null)}
+        onPay={submitPay}
+        onReset={resetHold}
       />
     </section>
   );

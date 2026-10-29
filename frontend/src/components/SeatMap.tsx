@@ -9,6 +9,9 @@ type Props = {
 };
 
 function seatClass(seat: Seat, selected: boolean): string {
+  if (seat.status === 'RESERVED') {
+    return 'border-gray-400 bg-gray-400 text-white cursor-not-allowed';
+  }
   if (seat.status === 'HELD') {
     return 'border-gray-200 bg-gray-200 text-gray-400 cursor-not-allowed';
   }
@@ -34,7 +37,7 @@ export default function SeatMap({ seats, selectedIds, locked, onToggle }: Props)
                   key={seat.id}
                   type="button"
                   title={`${seat.row}열 ${seat.number}번 · ${formatPrice(seat.price)}`}
-                  disabled={seat.status === 'HELD' || locked}
+                  disabled={seat.status !== 'AVAILABLE' || locked}
                   onClick={() => onToggle(seat)}
                   className={`h-9 w-9 rounded-md border text-xs font-medium transition disabled:cursor-not-allowed ${seatClass(seat, selectedIds.has(seat.id))}`}
                 >
@@ -49,6 +52,7 @@ export default function SeatMap({ seats, selectedIds, locked, onToggle }: Props)
         <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-violet-400 bg-white" />선점 가능</span>
         <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded bg-violet-600" />선택한 좌석</span>
         <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded bg-gray-200" />선점 불가</span>
+        <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded bg-gray-400" />예매 완료</span>
       </div>
     </div>
   );
