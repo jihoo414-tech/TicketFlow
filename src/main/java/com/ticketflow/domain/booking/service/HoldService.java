@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,8 +62,8 @@ public class HoldService {
     public List<SeatResponse> getSeats(Long showtimeId) {
         Showtime showtime = showtimeService.findShowtime(showtimeId);
         List<Seat> seats = seatService.findSeats(showtime);
-        Set<Long> occupiedSeatIds = findOccupiedSeatIds(showtimeId, now());
-        return toSeatResponses(seats, showtime.getPrice(), occupiedSeatIds);
+        Map<Long, SeatStatus> occupiedSeatStatuses = findOccupiedSeatStatuses(showtimeId, now());
+        return toSeatResponses(seats, showtime.getPrice(), occupiedSeatStatuses);
     }
 
     @Transactional(readOnly = true)
@@ -77,11 +77,10 @@ public class HoldService {
         return holdSeatRepository.findSeatIdsByHoldId(holdId);
     }
 
-    private Set<Long> findOccupiedSeatIds(Long showtimeId, LocalDateTime now) {
+    private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long showtimeId, LocalDateTime now) {
         return holdSeatRepository.findAllWithHoldByShowtimeId(showtimeId).stream()
                 .filter(holdSeat -> holdSeat.isOccupying(now))
-                .map(holdSeat -> holdSeat.getSeat().getId())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(holdSeat -> holdSeat.getSeat().getId(), this::statusOf));
     }
 
     private void validateNoActiveHold(Long memberId, Long showtimeId, LocalDateTime now) {
@@ -124,13 +123,13 @@ public class HoldService {
         return HoldResponse.of(hold.getId(), seats, hold.getExpiresAt());
     }
 
-    private List<SeatResponse> toSeatResponses(List<Seat> seats, int price, Set<Long> occupiedSeatIds) {
+    private List<SeatResponse> toSeatResponses(List<Seat> seats, int price, Map<Long, SeatStatus> occupiedSeatStatuses) {
         return seats.stream()
-                .map(seat -> SeatResponse.of(seat, price, statusOf(seat, occupiedSeatIds)))
+                .map(seat -> SeatResponse.of(seat, price, occupiedSeatStatuses.getOrDefault(seat.getId(), SeatStatus.AVAILABLE)))
                 .toList();
     }
 
-    private SeatStatus statusOf(Seat seat, Set<Long> occupiedSeatIds) {
-        return occupiedSeatIds.contains(seat.getId()) ? SeatStatus.HELD : SeatStatus.AVAILABLE;
+    private SeatStatus statusOf(HoldSeat holdSeat) {
+        return holdSeat.isReserved() ? SeatStatus.RESERVED : SeatStatus.HELD;
     }
 }
