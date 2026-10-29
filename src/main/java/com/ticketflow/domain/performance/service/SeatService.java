@@ -21,9 +21,9 @@ public class SeatService {
         return toResponses(findSeatsOf(showtimeId));
     }
 
-    @Transactional(readOnly = true)
-    public List<Seat> findSeats(List<Long> seatIds) {
-        return seatRepository.findAllById(seatIds);
+    @Transactional
+    public List<Seat> findLockedSeats(List<Long> seatIds) {
+        return seatRepository.findAllByIdForUpdate(seatIds);
     }
 
     private List<Seat> findSeatsOf(Long showtimeId) {

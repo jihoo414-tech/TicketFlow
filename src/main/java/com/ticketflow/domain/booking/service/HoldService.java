@@ -15,6 +15,7 @@ import com.ticketflow.global.exception.BusinessException;
 import com.ticketflow.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -32,13 +33,13 @@ public class HoldService {
     private final HoldSeatRepository holdSeatRepository;
     private final Clock clock;
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
         Member member = memberService.findMember(memberId);
 
         Showtime showtime = showtimeService.findShowtime(showtimeId);
-        
-        List<Seat> seats = seatService.findSeats(seatIds);
+
+        List<Seat> seats = seatService.findLockedSeats(seatIds);
         Hold hold = Hold.create(member, showtime, seats, now());
 
         validateSeatsNotHeld(seatIds);
