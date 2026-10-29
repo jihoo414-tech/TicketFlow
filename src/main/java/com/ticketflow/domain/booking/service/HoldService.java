@@ -36,14 +36,14 @@ public class HoldService {
     public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
         Member member = memberService.findMember(memberId);
 
-
         Showtime showtime = showtimeService.findShowtime(showtimeId);
-
+        
         List<Seat> seats = seatService.findSeats(seatIds);
+        Hold hold = Hold.create(member, showtime, seats, now());
 
         validateSeatsNotHeld(seatIds);
 
-        Hold hold = saveHold(member, showtime, seats);
+        saveHold(hold);
         saveHoldSeats(hold, seats);
 
         return toResponse(hold, seats);
@@ -55,8 +55,8 @@ public class HoldService {
         }
     }
 
-    private Hold saveHold(Member member, Showtime showtime, List<Seat> seats) {
-        return holdRepository.save(Hold.create(member, showtime, seats, now()));
+    private void saveHold(Hold hold) {
+        holdRepository.save(hold);
     }
 
     private void saveHoldSeats(Hold hold, List<Seat> seats) {
