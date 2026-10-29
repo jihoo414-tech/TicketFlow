@@ -96,6 +96,30 @@ class HoldApiTest {
     }
 
     @Test
+    void 이미_선점이_있는_회차에서_다시_선점하면_실패한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(3);
+        List<Long> seatIds = fixture.seatIds();
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(0), seatIds.get(1)))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(2)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("HOLD_ALREADY_EXISTS"));
+    }
+
+    @Test
     void 선점_만료된_좌석은_다른_회원이_선점할_수_있다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
         Member otherMember = memberRepository.save(new Member("회원2"));

@@ -47,6 +47,7 @@ public class HoldService {
         LocalDateTime now = now();
         Hold hold = Hold.create(member, showtime, seats, now);
 
+        validateNoActiveHold(memberId, showtimeId, now);
         validateSeatsNotHeld(seatIds, now);
 
         saveHold(hold);
@@ -68,6 +69,14 @@ public class HoldService {
                 .filter(holdSeat -> holdSeat.isOccupying(now))
                 .map(holdSeat -> holdSeat.getSeat().getId())
                 .collect(Collectors.toSet());
+    }
+
+    private void validateNoActiveHold(Long memberId, Long showtimeId, LocalDateTime now) {
+        boolean hasActiveHold = holdRepository.findAllByMemberIdAndShowtimeId(memberId, showtimeId).stream()
+                .anyMatch(hold -> hold.isOccupying(now));
+        if (hasActiveHold) {
+            throw new BusinessException(ErrorCode.HOLD_ALREADY_EXISTS);
+        }
     }
 
     private void validateSeatsNotHeld(List<Long> seatIds, LocalDateTime now) {

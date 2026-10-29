@@ -16,6 +16,7 @@ public enum ErrorCode {
     BOOKING_OPEN_NOT_BEFORE_START(HttpStatus.BAD_REQUEST, "예매 오픈 시각은 회차 시작 시각보다 이전이어야 합니다."),
 
     SEAT_ALREADY_HELD(HttpStatus.CONFLICT, "이미 선점된 좌석이 포함되어 있습니다."),
+    HOLD_ALREADY_EXISTS(HttpStatus.CONFLICT, "이 회차에 이미 선점이 있습니다. 기존 선점을 먼저 취소해 주세요."),
     BOOKING_NOT_OPEN(HttpStatus.BAD_REQUEST, "아직 예매 오픈 시각이 되지 않았습니다."),
     INVALID_SEAT_COUNT(HttpStatus.BAD_REQUEST, "좌석은 1석 이상 4석 이하로 선택해 주세요."),
 
