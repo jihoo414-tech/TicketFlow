@@ -30,6 +30,12 @@ public class ShowtimeService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public Showtime findShowtime(Long showtimeId) {
+        return showtimeRepository.findById(showtimeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SHOWTIME_NOT_FOUND));
+    }
+
     private List<Showtime> findShowtimesOf(Long performanceId) {
         return showtimeRepository.findByPerformanceIdOrderByStartsAtAsc(performanceId);
     }

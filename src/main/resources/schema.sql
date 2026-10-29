@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS hold_seat;
+DROP TABLE IF EXISTS hold;
 DROP TABLE IF EXISTS seat;
 DROP TABLE IF EXISTS showtime;
 DROP TABLE IF EXISTS performance;
@@ -33,4 +35,24 @@ CREATE TABLE seat (
     PRIMARY KEY (id),
     FOREIGN KEY (showtime_id) REFERENCES showtime (id),
     UNIQUE KEY uk_seat_showtime_row_no (showtime_id, seat_row, seat_no)
+);
+
+CREATE TABLE hold (
+    id          BIGINT      NOT NULL AUTO_INCREMENT,
+    member_id   BIGINT      NOT NULL,
+    showtime_id BIGINT      NOT NULL,
+    status      VARCHAR(30) NOT NULL,
+    expires_at  DATETIME    NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (member_id) REFERENCES member (id),
+    FOREIGN KEY (showtime_id) REFERENCES showtime (id)
+);
+
+CREATE TABLE hold_seat (
+    id      BIGINT NOT NULL AUTO_INCREMENT,
+    hold_id BIGINT NOT NULL,
+    seat_id BIGINT NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (hold_id) REFERENCES hold (id),
+    FOREIGN KEY (seat_id) REFERENCES seat (id)
 );

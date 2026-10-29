@@ -21,6 +21,11 @@ public class SeatService {
         return toResponses(findSeatsOf(showtimeId));
     }
 
+    @Transactional(readOnly = true)
+    public List<Seat> findSeats(List<Long> seatIds) {
+        return seatRepository.findAllById(seatIds);
+    }
+
     private List<Seat> findSeatsOf(Long showtimeId) {
         return seatRepository.findByShowtimeIdOrderBySeatRowAscSeatNoAsc(showtimeId);
     }

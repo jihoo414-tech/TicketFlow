@@ -33,13 +33,14 @@ public class MemberService {
         }
     }
 
-    private List<Member> findAllMembers() {
-        return memberRepository.findAll();
-    }
-
-    private Member findMember(Long memberId) {
+    @Transactional(readOnly = true)
+    public Member findMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    private List<Member> findAllMembers() {
+        return memberRepository.findAll();
     }
 
     private List<MemberResponse> toResponses(List<Member> members) {
