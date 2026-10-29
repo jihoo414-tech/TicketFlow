@@ -63,6 +63,26 @@ class ReservationApiTest {
     }
 
     @Test
+    void 예매된_좌석은_선점_만료_시각이_지나도_다른_회원이_선점할_수_없다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        Member otherMember = memberRepository.save(new Member("회원2"));
+        testClock.setTo(BOOKING_OPEN_AT);
+        Long holdId = hold(fixture.member(), fixture, fixture.seatIds());
+        pay(fixture.member(), holdId);
+
+        testClock.advance(Duration.ofMinutes(5));
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", otherMember.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(fixture.seatIds())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SEAT_ALREADY_HELD"));
+    }
+
+    @Test
     void 선점이_만료된_뒤에_결제하면_실패한다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
         testClock.setTo(BOOKING_OPEN_AT);
@@ -103,6 +123,35 @@ class ReservationApiTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(reservationId))
                 .andExpect(jsonPath("$.holdId").value(holdId));
+    }
+
+    @Test
+    void 예매가_있는_회차에서_합쳐서_4석까지는_다시_선점할_수_있다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(4);
+        List<Long> seatIds = fixture.seatIds();
+        testClock.setTo(BOOKING_OPEN_AT);
+        Long holdId = hold(fixture.member(), fixture, List.of(seatIds.get(0), seatIds.get(1)));
+        pay(fixture.member(), holdId);
+
+        hold(fixture.member(), fixture, List.of(seatIds.get(2), seatIds.get(3)));
+    }
+
+    @Test
+    void 예매와_합쳐서_4석을_넘게_선점하면_실패한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(5);
+        List<Long> seatIds = fixture.seatIds();
+        testClock.setTo(BOOKING_OPEN_AT);
+        Long holdId = hold(fixture.member(), fixture, List.of(seatIds.get(0), seatIds.get(1)));
+        pay(fixture.member(), holdId);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(2), seatIds.get(3), seatIds.get(4)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SEAT_LIMIT_EXCEEDED"));
     }
 
     @Test
