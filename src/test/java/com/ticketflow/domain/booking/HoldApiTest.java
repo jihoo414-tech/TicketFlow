@@ -120,6 +120,54 @@ class HoldApiTest {
     }
 
     @Test
+    void 다른_회차에서는_따로_선점할_수_있다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        HoldFixture otherShowtimeFixture = holdFixtureFactory.createHoldFixture(1);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(fixture.seatIds())))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", otherShowtimeFixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(otherShowtimeFixture.seatIds())))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void 선점이_만료된_회차에서는_다시_선점할_수_있다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(2);
+        List<Long> seatIds = fixture.seatIds();
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(0)))))
+                .andExpect(status().isCreated());
+
+        testClock.advance(Duration.ofMinutes(5));
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(1)))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void 선점_만료된_좌석은_다른_회원이_선점할_수_있다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
         Member otherMember = memberRepository.save(new Member("회원2"));

@@ -116,6 +116,19 @@ class HoldConcurrencyTest {
         assertThat(statusOfLoserOnlySeat).isEqualTo(201);
     }
 
+    @Test
+    void 같은_회원이_같은_회차에_동시에_여러_번_선점하면_한_번만_선점한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(4);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        List<Integer> statuses = holdConcurrently(fixture, fixture.seatIds().stream()
+                .map(seatId -> new HoldAttempt(fixture.member(), List.of(seatId)))
+                .toList());
+
+        assertThat(statuses).filteredOn(status -> status == 201).hasSize(1);
+        assertThat(statuses).filteredOn(status -> status == 409).hasSize(3);
+    }
+
     private List<Integer> holdConcurrently(HoldFixture fixture, List<HoldAttempt> attempts) throws Exception {
         CountDownLatch start = new CountDownLatch(1);
         List<Future<Integer>> futures = new ArrayList<>();
