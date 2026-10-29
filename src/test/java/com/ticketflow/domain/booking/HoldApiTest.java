@@ -2,6 +2,8 @@ package com.ticketflow.domain.booking;
 
 import com.ticketflow.TestClock;
 import com.ticketflow.TestcontainersConfiguration;
+import com.ticketflow.domain.member.entity.Member;
+import com.ticketflow.domain.member.repository.MemberRepository;
 import com.ticketflow.fixture.HoldFixture;
 import com.ticketflow.fixture.HoldFixtureFactory;
 import org.junit.jupiter.api.AfterEach;
@@ -13,6 +15,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -34,6 +38,9 @@ class HoldApiTest {
 
     @Autowired
     HoldFixtureFactory holdFixtureFactory;
+
+    @Autowired
+    MemberRepository memberRepository;
 
     @AfterEach
     void resetClock() {
@@ -58,5 +65,30 @@ class HoldApiTest {
                 .andExpect(jsonPath("$.seats[*].row").value(containsInAnyOrder("A", "A", "A", "A")))
                 .andExpect(jsonPath("$.seats[*].number").value(containsInAnyOrder(1, 2, 3, 4)))
                 .andExpect(jsonPath("$.expiresAt").value("2026-10-01T10:05:00"));
+    }
+
+    @Test
+    void 선점하려는_묶음에_다른_선점의_좌석이_있으면_선점이_실패한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(4);
+        Member otherMember = memberRepository.save(new Member("회원2"));
+        List<Long> seatIds = fixture.seatIds();
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(0), seatIds.get(1)))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", otherMember.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(List.of(seatIds.get(1), seatIds.get(2)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SEAT_ALREADY_HELD"));
     }
 }
