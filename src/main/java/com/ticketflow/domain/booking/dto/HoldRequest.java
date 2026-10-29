@@ -1,8 +1,10 @@
 package com.ticketflow.domain.booking.dto;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 
 public record HoldRequest(
-        List<Long> seatIds
+        @NotNull List<Long> seatIds
 ) {
 }
