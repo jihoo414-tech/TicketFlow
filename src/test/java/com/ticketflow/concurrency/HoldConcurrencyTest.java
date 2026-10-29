@@ -89,18 +89,39 @@ class HoldConcurrencyTest {
 
         testClock.setTo(BOOKING_OPEN_AT);
 
-        List<Integer> statuses = holdConcurrently(fixture, members);
+        List<Integer> statuses = holdConcurrently(fixture, members.stream()
+                .map(member -> new HoldAttempt(member, fixture.seatIds()))
+                .toList());
 
         assertThat(statuses).filteredOn(status -> status == 201).hasSize(1);
         assertThat(statuses).filteredOn(status -> status == 409).hasSize(MEMBER_COUNT - 1);
     }
 
-    private List<Integer> holdConcurrently(HoldFixture fixture, List<Member> members) throws Exception {
+    @Test
+    void 여러_회원이_일부만_겹치는_좌석_묶음을_동시에_선점하면_한_명만_선점한다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(3);
+        List<Long> seatIds = fixture.seatIds();
+        Member memberA = memberRepository.save(new Member("회원A"));
+        Member memberB = memberRepository.save(new Member("회원B"));
+        Member memberC = memberRepository.save(new Member("회원C"));
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        List<Integer> statuses = holdConcurrently(fixture, List.of(
+                new HoldAttempt(memberA, List.of(seatIds.get(0), seatIds.get(1))),
+                new HoldAttempt(memberB, List.of(seatIds.get(1), seatIds.get(2)))));
+
+        assertThat(statuses).containsExactlyInAnyOrder(201, 409);
+        Long loserOnlySeatId = statuses.get(0) == 409 ? seatIds.get(0) : seatIds.get(2);
+        int statusOfLoserOnlySeat = holdRequest(fixture, new HoldAttempt(memberC, List.of(loserOnlySeatId)), new CountDownLatch(0)).call();
+        assertThat(statusOfLoserOnlySeat).isEqualTo(201);
+    }
+
+    private List<Integer> holdConcurrently(HoldFixture fixture, List<HoldAttempt> attempts) throws Exception {
         CountDownLatch start = new CountDownLatch(1);
         List<Future<Integer>> futures = new ArrayList<>();
-        try (ExecutorService executor = Executors.newFixedThreadPool(members.size())) {
-            for (Member member : members) {
-                futures.add(executor.submit(holdRequest(fixture, member, start)));
+        try (ExecutorService executor = Executors.newFixedThreadPool(attempts.size())) {
+            for (HoldAttempt attempt : attempts) {
+                futures.add(executor.submit(holdRequest(fixture, attempt, start)));
             }
             start.countDown();
         }
@@ -111,18 +132,21 @@ class HoldConcurrencyTest {
         return statuses;
     }
 
-    private Callable<Integer> holdRequest(HoldFixture fixture, Member member, CountDownLatch start) {
+    private Callable<Integer> holdRequest(HoldFixture fixture, HoldAttempt attempt, CountDownLatch start) {
         return () -> {
             start.await();
             return mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                            .header("X-Member-Id", member.getId())
+                            .header("X-Member-Id", attempt.member().getId())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"seatIds": %s}
-                                    """.formatted(fixture.seatIds())))
+                                    """.formatted(attempt.seatIds())))
                     .andReturn()
                     .getResponse()
                     .getStatus();
         };
+    }
+
+    private record HoldAttempt(Member member, List<Long> seatIds) {
     }
 }
