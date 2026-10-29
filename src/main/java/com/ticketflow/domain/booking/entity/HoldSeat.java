@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "hold_seat")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -27,5 +29,9 @@ public class HoldSeat {
     public HoldSeat(Hold hold, Seat seat) {
         this.hold = hold;
         this.seat = seat;
+    }
+
+    public boolean isOccupying(LocalDateTime now) {
+        return hold.isOccupying(now);
     }
 }
