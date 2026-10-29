@@ -5,10 +5,10 @@ import com.ticketflow.domain.booking.dto.SeatResponse;
 import com.ticketflow.domain.booking.dto.SeatStatus;
 import com.ticketflow.domain.booking.entity.Hold;
 import com.ticketflow.domain.booking.entity.HoldSeat;
+import com.ticketflow.domain.booking.entity.HoldStatus;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
-import com.ticketflow.domain.member.entity.Member;
-import com.ticketflow.domain.member.service.MemberService;
+import com.ticketflow.domain.booking.service.SeatOccupancyLock.LockedOccupancy;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
 import com.ticketflow.domain.performance.service.SeatService;
@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -30,23 +31,26 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HoldService {
 
-    private final MemberService memberService;
     private final ShowtimeService showtimeService;
     private final SeatService seatService;
     private final HoldRepository holdRepository;
     private final HoldSeatRepository holdSeatRepository;
+    private final SeatOccupancyLock seatOccupancyLock;
     private final Clock clock;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
-        Member member = memberService.findMember(memberId);
+        validateNoDuplicateSeats(seatIds);
 
+        LockedOccupancy locked = seatOccupancyLock.acquire(memberId, seatIds);
         Showtime showtime = showtimeService.findShowtime(showtimeId);
 
-        List<Seat> seats = seatService.findLockedSeats(seatIds);
-        LocalDateTime now = now();
-        Hold hold = Hold.create(member, showtime, seats, now);
+        List<Seat> seats = locked.seats();
+        LocalDateTime now = locked.lockedAt();
+        Hold hold = Hold.create(locked.member(), showtime, seats, now);
 
+        validateNoActiveHold(memberId, showtimeId, now);
+        validateSeatLimit(memberId, showtimeId, seats);
         validateSeatsNotHeld(seatIds, now);
 
         saveHold(hold);
@@ -59,15 +63,45 @@ public class HoldService {
     public List<SeatResponse> getSeats(Long showtimeId) {
         Showtime showtime = showtimeService.findShowtime(showtimeId);
         List<Seat> seats = seatService.findSeats(showtime);
-        Set<Long> occupiedSeatIds = findOccupiedSeatIds(showtimeId, now());
-        return toSeatResponses(seats, showtime.getPrice(), occupiedSeatIds);
+        Map<Long, SeatStatus> occupiedSeatStatuses = findOccupiedSeatStatuses(showtimeId, now());
+        return toSeatResponses(seats, showtime.getPrice(), occupiedSeatStatuses);
     }
 
-    private Set<Long> findOccupiedSeatIds(Long showtimeId, LocalDateTime now) {
+    @Transactional(readOnly = true)
+    public Hold findHold(Long holdId) {
+        return holdRepository.findById(holdId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.HOLD_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findSeatIds(Long holdId) {
+        return holdSeatRepository.findSeatIdsByHoldId(holdId);
+    }
+
+    private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long showtimeId, LocalDateTime now) {
         return holdSeatRepository.findAllWithHoldByShowtimeId(showtimeId).stream()
                 .filter(holdSeat -> holdSeat.isOccupying(now))
-                .map(holdSeat -> holdSeat.getSeat().getId())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(holdSeat -> holdSeat.getSeat().getId(), this::statusOf));
+    }
+
+    private void validateNoDuplicateSeats(List<Long> seatIds) {
+        if (Set.copyOf(seatIds).size() != seatIds.size()) {
+            throw new BusinessException(ErrorCode.DUPLICATE_SEAT);
+        }
+    }
+
+    private void validateNoActiveHold(Long memberId, Long showtimeId, LocalDateTime now) {
+        boolean hasActiveHold = holdRepository.findAllByMemberIdAndShowtimeId(memberId, showtimeId).stream()
+                .anyMatch(hold -> hold.isHeld(now));
+        if (hasActiveHold) {
+            throw new BusinessException(ErrorCode.HOLD_ALREADY_EXISTS);
+        }
+    }
+
+    private void validateSeatLimit(Long memberId, Long showtimeId, List<Seat> seats) {
+        long reservedSeatCount = holdSeatRepository.countByMemberIdAndShowtimeIdAndStatus(
+                memberId, showtimeId, HoldStatus.RESERVED);
+        Hold.validateSeatLimit(reservedSeatCount, seats.size());
     }
 
     private void validateSeatsNotHeld(List<Long> seatIds, LocalDateTime now) {
@@ -96,13 +130,13 @@ public class HoldService {
         return HoldResponse.of(hold.getId(), seats, hold.getExpiresAt());
     }
 
-    private List<SeatResponse> toSeatResponses(List<Seat> seats, int price, Set<Long> occupiedSeatIds) {
+    private List<SeatResponse> toSeatResponses(List<Seat> seats, int price, Map<Long, SeatStatus> occupiedSeatStatuses) {
         return seats.stream()
-                .map(seat -> SeatResponse.of(seat, price, statusOf(seat, occupiedSeatIds)))
+                .map(seat -> SeatResponse.of(seat, price, occupiedSeatStatuses.getOrDefault(seat.getId(), SeatStatus.AVAILABLE)))
                 .toList();
     }
 
-    private SeatStatus statusOf(Seat seat, Set<Long> occupiedSeatIds) {
-        return occupiedSeatIds.contains(seat.getId()) ? SeatStatus.HELD : SeatStatus.AVAILABLE;
+    private SeatStatus statusOf(HoldSeat holdSeat) {
+        return holdSeat.isReserved() ? SeatStatus.RESERVED : SeatStatus.HELD;
     }
 }

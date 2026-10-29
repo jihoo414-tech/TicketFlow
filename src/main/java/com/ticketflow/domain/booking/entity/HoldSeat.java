@@ -34,4 +34,8 @@ public class HoldSeat {
     public boolean isOccupying(LocalDateTime now) {
         return hold.isOccupying(now);
     }
+
+    public boolean isReserved() {
+        return hold.isReserved();
+    }
 }

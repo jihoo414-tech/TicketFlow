@@ -52,16 +52,53 @@ public class Hold {
     public static Hold create(Member member, Showtime showtime, List<Seat> seats, LocalDateTime now) {
         showtime.validateBookingOpen(now);
         validateSeatCount(seats);
+        validateSeatsInShowtime(showtime, seats);
         return new Hold(member, showtime, HoldStatus.HELD, now.plus(HOLD_DURATION));
     }
 
+    public static void validateSeatLimit(long reservedSeatCount, int seatCount) {
+        if (reservedSeatCount + seatCount > MAX_SEAT_COUNT) {
+            throw new BusinessException(ErrorCode.SEAT_LIMIT_EXCEEDED);
+        }
+    }
+
+    public Reservation reserve(LocalDateTime paidAt) {
+        validateHeld(paidAt);
+        this.status = HoldStatus.RESERVED;
+        return new Reservation(this, member);
+    }
+
+    public boolean isOwnedBy(Long memberId) {
+        return member.getId().equals(memberId);
+    }
+
+    public boolean isReserved() {
+        return status == HoldStatus.RESERVED;
+    }
+
+    public boolean isHeld(LocalDateTime now) {
+        return status == HoldStatus.HELD && now.isBefore(expiresAt);
+    }
+
     public boolean isOccupying(LocalDateTime now) {
-        return now.isBefore(expiresAt);
+        return status == HoldStatus.RESERVED || isHeld(now);
+    }
+
+    private void validateHeld(LocalDateTime now) {
+        if (!isHeld(now)) {
+            throw new BusinessException(ErrorCode.HOLD_EXPIRED);
+        }
     }
 
     private static void validateSeatCount(List<Seat> seats) {
         if (seats.isEmpty() || seats.size() > MAX_SEAT_COUNT) {
             throw new BusinessException(ErrorCode.INVALID_SEAT_COUNT);
+        }
+    }
+
+    private static void validateSeatsInShowtime(Showtime showtime, List<Seat> seats) {
+        if (!seats.stream().allMatch(seat -> seat.belongsTo(showtime))) {
+            throw new BusinessException(ErrorCode.SEAT_NOT_IN_SHOWTIME);
         }
     }
 }

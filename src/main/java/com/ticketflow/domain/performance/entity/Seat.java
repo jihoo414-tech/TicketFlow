@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 @Entity
 @Table(name = "seat")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,5 +30,9 @@ public class Seat {
         this.showtime = showtime;
         this.seatRow = seatRow;
         this.seatNo = seatNo;
+    }
+
+    public boolean belongsTo(Showtime showtime) {
+        return Objects.equals(this.showtime.getId(), showtime.getId());
     }
 }
