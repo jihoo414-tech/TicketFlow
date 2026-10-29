@@ -8,8 +8,7 @@ import com.ticketflow.domain.booking.entity.HoldSeat;
 import com.ticketflow.domain.booking.entity.HoldStatus;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
-import com.ticketflow.domain.member.entity.Member;
-import com.ticketflow.domain.member.service.MemberService;
+import com.ticketflow.domain.booking.service.SeatOccupancyLock.LockedOccupancy;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
 import com.ticketflow.domain.performance.service.SeatService;
@@ -31,22 +30,21 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HoldService {
 
-    private final MemberService memberService;
     private final ShowtimeService showtimeService;
     private final SeatService seatService;
     private final HoldRepository holdRepository;
     private final HoldSeatRepository holdSeatRepository;
+    private final SeatOccupancyLock seatOccupancyLock;
     private final Clock clock;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
-        Member member = memberService.findLockedMember(memberId);
-
+        LockedOccupancy locked = seatOccupancyLock.acquire(memberId, seatIds);
         Showtime showtime = showtimeService.findShowtime(showtimeId);
 
-        List<Seat> seats = seatService.findLockedSeats(seatIds);
-        LocalDateTime now = now();
-        Hold hold = Hold.create(member, showtime, seats, now);
+        List<Seat> seats = locked.seats();
+        LocalDateTime now = locked.lockedAt();
+        Hold hold = Hold.create(locked.member(), showtime, seats, now);
 
         validateNoActiveHold(memberId, showtimeId, now);
         validateSeatLimit(memberId, showtimeId, seats);

@@ -4,8 +4,7 @@ import com.ticketflow.domain.booking.dto.ReservationResponse;
 import com.ticketflow.domain.booking.entity.Hold;
 import com.ticketflow.domain.booking.entity.Reservation;
 import com.ticketflow.domain.booking.repository.ReservationRepository;
-import com.ticketflow.domain.member.service.MemberService;
-import com.ticketflow.domain.performance.service.SeatService;
+import com.ticketflow.domain.booking.service.SeatOccupancyLock.LockedOccupancy;
 import com.ticketflow.global.exception.BusinessException;
 import com.ticketflow.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -13,35 +12,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
 
-    private final MemberService memberService;
-    private final SeatService seatService;
+    private final SeatOccupancyLock seatOccupancyLock;
     private final HoldService holdService;
     private final ReservationRepository reservationRepository;
-    private final Clock clock;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationResponse pay(Long memberId, Long holdId) {
-        memberService.findLockedMember(memberId);
-        lockSeatsOf(holdId);
-        LocalDateTime now = now();
+        LockedOccupancy locked = seatOccupancyLock.acquire(memberId, holdService.findSeatIds(holdId));
 
         Hold hold = holdService.findHold(holdId);
         validateOwner(hold, memberId);
 
-        Reservation reservation = findOrReserve(hold, now);
+        Reservation reservation = findOrReserve(hold, locked.lockedAt());
 
         return ReservationResponse.from(reservation);
-    }
-
-    private void lockSeatsOf(Long holdId) {
-        seatService.findLockedSeats(holdService.findSeatIds(holdId));
     }
 
     private void validateOwner(Hold hold, Long memberId) {
@@ -63,9 +53,5 @@ public class ReservationService {
 
     private Reservation saveReservation(Reservation reservation) {
         return reservationRepository.save(reservation);
-    }
-
-    private LocalDateTime now() {
-        return LocalDateTime.now(clock);
     }
 }
