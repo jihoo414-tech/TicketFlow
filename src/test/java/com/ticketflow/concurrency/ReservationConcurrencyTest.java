@@ -6,6 +6,7 @@ import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
 import com.ticketflow.domain.booking.repository.ReservationRepository;
+import com.ticketflow.domain.member.entity.Member;
 import com.ticketflow.domain.member.repository.MemberRepository;
 import com.ticketflow.domain.performance.repository.PerformanceRepository;
 import com.ticketflow.domain.performance.repository.SeatRepository;
@@ -13,6 +14,8 @@ import com.ticketflow.domain.performance.repository.ShowtimeRepository;
 import com.ticketflow.fixture.HoldFixture;
 import com.ticketflow.fixture.HoldFixtureFactory;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.RepetitionInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,8 +25,10 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +36,7 @@ import java.util.concurrent.Future;
 
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 @Import(TestcontainersConfiguration.class)
@@ -93,6 +99,84 @@ class ReservationConcurrencyTest {
         assertThat(responses).allMatch(response -> response.getStatus() == 201);
         assertThat(responses).extracting(this::reservationIdOf).containsOnly(reservationIdOf(responses.get(0)));
         assertThat(reservationRepository.count()).isEqualTo(1);
+    }
+
+    @RepeatedTest(10)
+    void 만료_시각에_결제와_다른_회원의_선점이_겹쳐도_좌석은_한쪽에만_돌아간다(RepetitionInfo repetition) throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(2);
+        testClock.setTo(BOOKING_OPEN_AT);
+        Long holdId = hold(fixture);
+        testClock.advance(Duration.ofMinutes(5).minusSeconds(1));
+
+        List<Callable<Integer>> requests = new ArrayList<>();
+        requests.add(() -> payStatus(fixture, holdId));
+        for (int i = 0; i < REQUEST_COUNT; i++) {
+            Member other = memberRepository.save(new Member("회원" + (i + 2)));
+            requests.add(() -> holdStatus(fixture, other));
+        }
+
+        Duration expiringDelay = Duration.ofMillis(repetition.getCurrentRepetition() * 20L);
+        List<Integer> statuses = runWhileExpiring(requests, expiringDelay);
+
+        boolean paid = statuses.get(0) == 201;
+        long heldByOthers = statuses.subList(1, statuses.size()).stream()
+                .filter(status -> status == 201)
+                .count();
+        assertThat(heldByOthers).isLessThanOrEqualTo(paid ? 0 : 1);
+        assertThat(seatStatuses(fixture)).containsOnly(paid ? "RESERVED" : heldByOthers == 1 ? "HELD" : "AVAILABLE");
+    }
+
+    private List<Integer> runWhileExpiring(List<Callable<Integer>> requests, Duration expiringDelay) throws Exception {
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<Integer>> futures = new ArrayList<>();
+        try (ExecutorService executor = Executors.newFixedThreadPool(requests.size() + 1)) {
+            for (Callable<Integer> request : requests) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    return request.call();
+                }));
+            }
+            executor.submit(() -> {
+                start.await();
+                Thread.sleep(expiringDelay);
+                testClock.advance(Duration.ofSeconds(1));
+                return null;
+            });
+            start.countDown();
+        }
+        List<Integer> statuses = new ArrayList<>();
+        for (Future<Integer> future : futures) {
+            statuses.add(future.get());
+        }
+        return statuses;
+    }
+
+    private int payStatus(HoldFixture fixture, Long holdId) throws Exception {
+        return mockMvc.perform(post("/api/holds/{holdId}/payment", holdId)
+                        .header("X-Member-Id", fixture.member().getId()))
+                .andReturn()
+                .getResponse()
+                .getStatus();
+    }
+
+    private int holdStatus(HoldFixture fixture, Member member) throws Exception {
+        return mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", member.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": %s}
+                                """.formatted(fixture.seatIds())))
+                .andReturn()
+                .getResponse()
+                .getStatus();
+    }
+
+    private List<String> seatStatuses(HoldFixture fixture) throws Exception {
+        String body = mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return JsonPath.read(body, "$[*].status");
     }
 
     private List<MockHttpServletResponse> payConcurrently(HoldFixture fixture, Long holdId) throws Exception {
