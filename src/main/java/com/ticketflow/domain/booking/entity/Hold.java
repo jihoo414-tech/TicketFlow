@@ -55,8 +55,32 @@ public class Hold {
         return new Hold(member, showtime, HoldStatus.HELD, now.plus(HOLD_DURATION));
     }
 
+    public Reservation reserve(LocalDateTime paidAt) {
+        validateHeld(paidAt);
+        this.status = HoldStatus.RESERVED;
+        return new Reservation(this, member);
+    }
+
+    public boolean isOwnedBy(Long memberId) {
+        return member.getId().equals(memberId);
+    }
+
+    public boolean isReserved() {
+        return status == HoldStatus.RESERVED;
+    }
+
+    public boolean isHeld(LocalDateTime now) {
+        return status == HoldStatus.HELD && now.isBefore(expiresAt);
+    }
+
     public boolean isOccupying(LocalDateTime now) {
         return now.isBefore(expiresAt);
+    }
+
+    private void validateHeld(LocalDateTime now) {
+        if (!isHeld(now)) {
+            throw new BusinessException(ErrorCode.HOLD_EXPIRED);
+        }
     }
 
     private static void validateSeatCount(List<Seat> seats) {

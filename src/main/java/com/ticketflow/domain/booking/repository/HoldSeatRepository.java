@@ -14,4 +14,7 @@ public interface HoldSeatRepository extends JpaRepository<HoldSeat, Long> {
 
     @Query("select hs from HoldSeat hs join fetch hs.hold h where h.showtime.id = :showtimeId")
     List<HoldSeat> findAllWithHoldByShowtimeId(@Param("showtimeId") Long showtimeId);
+
+    @Query("select hs.seat.id from HoldSeat hs where hs.hold.id = :holdId")
+    List<Long> findSeatIdsByHoldId(@Param("holdId") Long holdId);
 }

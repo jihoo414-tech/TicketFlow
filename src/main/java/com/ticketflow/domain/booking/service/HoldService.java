@@ -64,6 +64,17 @@ public class HoldService {
         return toSeatResponses(seats, showtime.getPrice(), occupiedSeatIds);
     }
 
+    @Transactional(readOnly = true)
+    public Hold findHold(Long holdId) {
+        return holdRepository.findById(holdId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.HOLD_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findSeatIds(Long holdId) {
+        return holdSeatRepository.findSeatIdsByHoldId(holdId);
+    }
+
     private Set<Long> findOccupiedSeatIds(Long showtimeId, LocalDateTime now) {
         return holdSeatRepository.findAllWithHoldByShowtimeId(showtimeId).stream()
                 .filter(holdSeat -> holdSeat.isOccupying(now))
