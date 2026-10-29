@@ -1,7 +1,7 @@
-package com.ticketflow.domain.performance.controller;
+package com.ticketflow.domain.booking.controller;
 
-import com.ticketflow.domain.performance.dto.SeatResponse;
-import com.ticketflow.domain.performance.service.SeatService;
+import com.ticketflow.domain.booking.dto.SeatResponse;
+import com.ticketflow.domain.booking.service.HoldService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,10 +14,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SeatController {
 
-    private final SeatService seatService;
+    private final HoldService holdService;
 
     @GetMapping("/api/showtimes/{showtimeId}/seats")
     public ResponseEntity<List<SeatResponse>> getSeats(@PathVariable Long showtimeId) {
-        return ResponseEntity.ok(seatService.getSeats(showtimeId));
+        return ResponseEntity.ok(holdService.getSeats(showtimeId));
     }
 }
