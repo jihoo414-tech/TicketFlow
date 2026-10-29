@@ -91,4 +91,16 @@ class HoldApiTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("SEAT_ALREADY_HELD"));
     }
+
+    @Test
+    void 좌석_목록_없이_선점을_요청하면_잘못된_요청으로_거절된다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
 }

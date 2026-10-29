@@ -4,6 +4,7 @@ import com.ticketflow.domain.booking.dto.HoldRequest;
 import com.ticketflow.domain.booking.dto.HoldResponse;
 import com.ticketflow.domain.booking.service.HoldService;
 import com.ticketflow.domain.member.controller.CurrentMemberId;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class HoldController {
     @PostMapping("/api/showtimes/{showtimeId}/holds")
     public ResponseEntity<HoldResponse> hold(@CurrentMemberId Long memberId,
                                              @PathVariable Long showtimeId,
-                                             @RequestBody HoldRequest request) {
+                                             @Valid @RequestBody HoldRequest request) {
         HoldResponse holdResponse = holdService.hold(memberId, showtimeId, request.seatIds());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(holdResponse);
