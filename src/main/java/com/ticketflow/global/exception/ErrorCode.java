@@ -17,6 +17,7 @@ public enum ErrorCode {
 
     SEAT_ALREADY_HELD(HttpStatus.CONFLICT, "이미 선점된 좌석이 포함되어 있습니다."),
     BOOKING_NOT_OPEN(HttpStatus.BAD_REQUEST, "아직 예매 오픈 시각이 되지 않았습니다."),
+    INVALID_SEAT_COUNT(HttpStatus.BAD_REQUEST, "좌석은 1석 이상 4석 이하로 선택해 주세요."),
 
 
     MEMBER_ID_MISSING(HttpStatus.UNAUTHORIZED, "회원을 선택해 주세요."),
