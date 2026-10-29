@@ -44,4 +44,10 @@ public class Showtime {
         }
         return new Showtime(performance, startsAt, bookingOpenAt, price);
     }
+
+    public void validateBookingOpen(LocalDateTime now) {
+        if (now.isBefore(bookingOpenAt)) {
+            throw new BusinessException(ErrorCode.BOOKING_NOT_OPEN);
+        }
+    }
 }
