@@ -32,7 +32,10 @@ export default function Layout() {
     <div className="min-h-screen">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-          <Link to="/" className="text-lg font-bold text-violet-700">TicketFlow</Link>
+          <div className="flex items-center gap-5">
+            <Link to="/" className="text-lg font-bold text-violet-700">TicketFlow</Link>
+            <Link to="/reservations" className="text-sm text-gray-600 hover:text-violet-700">내 예매</Link>
+          </div>
           <DevMemberSwitch />
         </div>
       </header>
