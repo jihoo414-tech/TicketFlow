@@ -2,9 +2,11 @@ import { Link, Outlet } from 'react-router-dom';
 import { useMember } from '../member';
 
 function DevMemberSwitch() {
-  const { members, memberId, ready, failed, selectMember } = useMember();
+  const { members, memberId, currentMember, memberError, ready, failed, selectMember } = useMember();
 
   return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+    {memberId !== null && <span className="text-xs text-gray-600">{memberError ? '현재 회원 조회 실패' : currentMember ? `현재 회원: ${currentMember.name} (#${currentMember.id})` : '현재 회원 확인 중...'}</span>}
     <label className="flex items-center gap-2 rounded-full border border-dashed border-amber-400 bg-amber-50 px-3 py-1 text-xs text-amber-800">
       <span className="font-semibold">개발용 · 회원 전환</span>
       <select
@@ -21,6 +23,7 @@ function DevMemberSwitch() {
         ))}
       </select>
     </label>
+    </div>
   );
 }
 
