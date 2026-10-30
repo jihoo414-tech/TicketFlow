@@ -48,28 +48,40 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
-let performancesInFlight: Promise<Performance[]> | null = null;
+const pendingReads = new Map<string, Promise<unknown>>();
 
-function loadPerformances(): Promise<Performance[]> {
-  if (!performancesInFlight) {
-    performancesInFlight = request<Performance[]>('/api/performances').finally(() => {
-      performancesInFlight = null;
-    });
+function read<T>(url: string): Promise<T> {
+  const key = JSON.stringify([memberId, url]);
+  const existing = pendingReads.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const pending = request<T>(url).finally(() => {
+    if (pendingReads.get(key) === pending) pendingReads.delete(key);
+  });
+  pendingReads.set(key, pending);
+  return pending;
+}
+
+async function write<T>(url: string, init: RequestInit): Promise<T> {
+  pendingReads.clear();
+  try {
+    return await request<T>(url, init);
+  } finally {
+    pendingReads.clear();
   }
-  return performancesInFlight;
 }
 
 export const api = {
-  members: () => request<Member[]>('/api/members'),
-  me: () => request<Member>('/api/members/me'),
-  performances: loadPerformances,
-  showtimes: (performanceId: string) => request<Showtime[]>(`/api/performances/${performanceId}/showtimes`),
-  seats: (showtimeId: string) => request<Seat[]>(`/api/showtimes/${showtimeId}/seats`),
+  members: () => read<Member[]>('/api/members'),
+  me: () => read<Member>('/api/members/me'),
+  performances: () => read<Performance[]>('/api/performances'),
+  showtimes: (performanceId: string) => read<Showtime[]>(`/api/performances/${performanceId}/showtimes`),
+  seats: (showtimeId: string) => read<Seat[]>(`/api/showtimes/${showtimeId}/seats`),
   hold: (showtimeId: string, seatIds: number[]) =>
-    request<Hold>(`/api/showtimes/${showtimeId}/holds`, {
+    write<Hold>(`/api/showtimes/${showtimeId}/holds`, {
       method: 'POST',
       body: JSON.stringify({ seatIds }),
     }),
-  cancelHold: (holdId: number) => request<HoldCancellation>(`/api/holds/${holdId}/cancellation`, { method: 'POST' }),
-  pay: (holdId: number) => request<Reservation>(`/api/holds/${holdId}/payment`, { method: 'POST' }),
+  cancelHold: (holdId: number) => write<HoldCancellation>(`/api/holds/${holdId}/cancellation`, { method: 'POST' }),
+  pay: (holdId: number) => write<Reservation>(`/api/holds/${holdId}/payment`, { method: 'POST' }),
 };
