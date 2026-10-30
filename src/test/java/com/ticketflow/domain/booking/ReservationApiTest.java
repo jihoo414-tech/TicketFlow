@@ -126,19 +126,18 @@ class ReservationApiTest {
     }
 
     @Test
-    void 결제된_선점을_만료_시각_이후에_다시_결제하면_기존_예매를_반환한다() throws Exception {
+    void 결제된_선점을_만료_시각_이후에_다시_결제하면_실패한다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
         testClock.setTo(BOOKING_OPEN_AT);
         Long holdId = hold(fixture.member(), fixture, fixture.seatIds());
-        Long reservationId = pay(fixture.member(), holdId);
+        pay(fixture.member(), holdId);
 
         testClock.advance(Duration.ofMinutes(6));
 
         mockMvc.perform(post("/api/holds/{holdId}/payment", holdId)
                         .header("X-Member-Id", fixture.member().getId()))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(reservationId))
-                .andExpect(jsonPath("$.holdId").value(holdId));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("HOLD_ALREADY_RESERVED"));
     }
 
     @Test

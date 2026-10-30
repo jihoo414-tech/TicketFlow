@@ -96,8 +96,9 @@ class ReservationConcurrencyTest {
 
         List<MockHttpServletResponse> responses = payConcurrently(fixture, holdId);
 
-        assertThat(responses).allMatch(response -> response.getStatus() == 201);
-        assertThat(responses).extracting(this::reservationIdOf).containsOnly(reservationIdOf(responses.get(0)));
+        assertThat(responses).extracting(MockHttpServletResponse::getStatus)
+                .containsOnlyOnce(201)
+                .containsOnly(201, 409);
         assertThat(reservationRepository.count()).isEqualTo(1);
     }
 
@@ -212,13 +213,5 @@ class ReservationConcurrencyTest {
                 .getResponse()
                 .getContentAsString();
         return ((Number) JsonPath.read(body, "$.id")).longValue();
-    }
-
-    private Long reservationIdOf(MockHttpServletResponse response) {
-        try {
-            return ((Number) JsonPath.read(response.getContentAsString(), "$.id")).longValue();
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
     }
 }

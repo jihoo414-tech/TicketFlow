@@ -6,6 +6,8 @@ const STORAGE_KEY = 'ticketflow.memberId';
 type MemberContextValue = {
   members: Member[];
   memberId: number | null;
+  currentMember: Member | null;
+  memberError: boolean;
   ready: boolean;
   failed: boolean;
   selectMember: (id: number) => void;
@@ -33,6 +35,8 @@ function storeMemberId(id: number) {
 export function MemberProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<Member[]>([]);
   const [memberId, setMemberId] = useState<number | null>(null);
+  const [currentMember, setCurrentMember] = useState<Member | null>(null);
+  const [memberError, setMemberError] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -51,6 +55,20 @@ export function MemberProvider({ children }: { children: ReactNode }) {
       .finally(() => setReady(true));
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    setCurrentMember(null);
+    setMemberError(false);
+    if (memberId !== null) {
+      api.me().then(member => {
+        if (active) setCurrentMember(member);
+      }).catch(() => {
+        if (active) setMemberError(true);
+      });
+    }
+    return () => { active = false; };
+  }, [memberId]);
+
   const selectMember = (id: number) => {
     setApiMemberId(id);
     storeMemberId(id);
@@ -58,7 +76,7 @@ export function MemberProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <MemberContext.Provider value={{ members, memberId, ready, failed, selectMember }}>
+    <MemberContext.Provider value={{ members, memberId, currentMember, memberError, ready, failed, selectMember }}>
       {children}
     </MemberContext.Provider>
   );

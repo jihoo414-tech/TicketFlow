@@ -24,8 +24,10 @@ public enum ErrorCode {
     INVALID_SEAT_COUNT(HttpStatus.BAD_REQUEST, "좌석은 1석 이상 4석 이하로 선택해 주세요."),
     DUPLICATE_SEAT(HttpStatus.BAD_REQUEST, "같은 좌석이 중복으로 포함되어 있습니다."),
     SEAT_NOT_IN_SHOWTIME(HttpStatus.BAD_REQUEST, "이 회차의 좌석이 아닌 좌석이 포함되어 있습니다."),
-    HOLD_NOT_OWNED(HttpStatus.FORBIDDEN, "본인의 선점만 결제할 수 있습니다."),
-    HOLD_EXPIRED(HttpStatus.CONFLICT, "선점이 만료되어 결제할 수 없습니다."),
+    HOLD_NOT_OWNED(HttpStatus.FORBIDDEN, "본인의 선점만 결제하거나 취소할 수 있습니다."),
+    HOLD_ALREADY_RESERVED(HttpStatus.CONFLICT, "이미 예매된 선점입니다."),
+    HOLD_ALREADY_CANCELLED(HttpStatus.CONFLICT, "이미 취소된 선점입니다."),
+    HOLD_EXPIRED(HttpStatus.CONFLICT, "선점이 만료되었습니다."),
 
 
     MEMBER_ID_MISSING(HttpStatus.UNAUTHORIZED, "회원을 선택해 주세요."),
