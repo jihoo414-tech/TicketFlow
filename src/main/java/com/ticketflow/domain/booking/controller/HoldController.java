@@ -1,5 +1,6 @@
 package com.ticketflow.domain.booking.controller;
 
+import com.ticketflow.domain.booking.dto.HoldCancellationResponse;
 import com.ticketflow.domain.booking.dto.HoldRequest;
 import com.ticketflow.domain.booking.dto.HoldResponse;
 import com.ticketflow.domain.booking.service.HoldService;
@@ -26,5 +27,13 @@ public class HoldController {
         HoldResponse holdResponse = holdService.hold(memberId, showtimeId, request.seatIds());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(holdResponse);
+    }
+
+    @PostMapping("/api/holds/{holdId}/cancellation")
+    public ResponseEntity<HoldCancellationResponse> cancel(@CurrentMemberId Long memberId,
+                                                           @PathVariable Long holdId) {
+        HoldCancellationResponse holdCancellationResponse = holdService.cancel(memberId, holdId);
+
+        return ResponseEntity.ok(holdCancellationResponse);
     }
 }

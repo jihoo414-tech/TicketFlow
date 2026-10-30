@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react';
 import type { Hold, Reservation, Seat } from '../api';
 import { formatDateTime, formatPrice, formatRemaining, formatSeat, parseLocalDateTime } from '../format';
+import { MAX_SEATS } from '../useSeatBooking';
 
-export const MAX_SEATS = 4;
 const URGENT_MS = 60_000;
 
 type Props = {
   hold: Hold | null;
+  holdExpired: boolean;
   reservation: Reservation | null;
   now: number;
   selectedSeats: Seat[];
@@ -14,8 +15,10 @@ type Props = {
   bookingOpenAt: string;
   holding: boolean;
   paying: boolean;
+  cancelling: boolean;
   onHold: () => void;
   onPay: () => void;
+  onCancel: () => void;
   onReset: () => void;
 };
 
@@ -28,7 +31,7 @@ function PanelFrame({ children }: { children: ReactNode }) {
 }
 
 export default function HoldPanel({
-  hold, reservation, now, selectedSeats, bookingOpen, bookingOpenAt, holding, paying, onHold, onPay, onReset,
+  hold, holdExpired, reservation, now, selectedSeats, bookingOpen, bookingOpenAt, holding, paying, cancelling, onHold, onPay, onCancel, onReset,
 }: Props) {
   if (hold) {
     const remainingMs = parseLocalDateTime(hold.expiresAt).getTime() - now;
@@ -48,7 +51,7 @@ export default function HoldPanel({
       );
     }
 
-    if (remainingMs <= 0) {
+    if (holdExpired && !paying && !cancelling) {
       return (
         <PanelFrame>
           <div>
@@ -76,8 +79,16 @@ export default function HoldPanel({
         </div>
         <button
           type="button"
+          onClick={onCancel}
+          disabled={paying || cancelling}
+          className="rounded-lg border border-gray-300 px-4 py-2.5 font-semibold text-gray-700 hover:border-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {cancelling ? '취소 중...' : '선점 취소'}
+        </button>
+        <button
+          type="button"
           onClick={onPay}
-          disabled={paying}
+          disabled={paying || cancelling || holdExpired}
           className="rounded-lg bg-violet-600 px-5 py-2.5 font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
           {paying ? '결제 중...' : '결제하기'}
