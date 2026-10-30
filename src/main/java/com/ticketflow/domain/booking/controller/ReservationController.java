@@ -1,5 +1,6 @@
 package com.ticketflow.domain.booking.controller;
 
+import com.ticketflow.domain.booking.dto.ReservationCancellationResponse;
 import com.ticketflow.domain.booking.dto.ReservationResponse;
 import com.ticketflow.domain.booking.service.ReservationService;
 import com.ticketflow.domain.member.controller.CurrentMemberId;
@@ -22,5 +23,13 @@ public class ReservationController {
         ReservationResponse reservationResponse = reservationService.pay(memberId, holdId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(reservationResponse);
+    }
+
+    @PostMapping("/api/reservations/{reservationId}/cancellation")
+    public ResponseEntity<ReservationCancellationResponse> cancel(@CurrentMemberId Long memberId,
+                                                                  @PathVariable Long reservationId) {
+        ReservationCancellationResponse reservationCancellationResponse = reservationService.cancel(memberId, reservationId);
+
+        return ResponseEntity.ok(reservationCancellationResponse);
     }
 }
