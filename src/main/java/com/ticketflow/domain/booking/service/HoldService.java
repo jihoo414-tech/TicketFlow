@@ -94,6 +94,13 @@ public class HoldService {
         return holdSeatRepository.findSeatIdsByHoldId(holdId);
     }
 
+    @Transactional(readOnly = true)
+    public Map<Long, List<Seat>> findSeatsByHoldIds(List<Long> holdIds) {
+        return holdSeatRepository.findAllWithSeatByHoldIdIn(holdIds).stream()
+                .collect(Collectors.groupingBy(holdSeat -> holdSeat.getHold().getId(),
+                        Collectors.mapping(HoldSeat::getSeat, Collectors.toList())));
+    }
+
     private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long showtimeId, LocalDateTime now) {
         return holdSeatRepository.findOccupyingByShowtimeId(showtimeId, HoldStatus.RESERVED, HoldStatus.HELD, now).stream()
                 .collect(Collectors.toMap(holdSeat -> holdSeat.getSeat().getId(), this::statusOf));
