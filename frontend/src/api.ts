@@ -7,6 +7,17 @@ export type HoldSeat = { id: number; row: string; number: number };
 export type Hold = { id: number; seats: HoldSeat[]; expiresAt: string };
 export type HoldCancellation = { id: number; status: 'CANCELLED' };
 export type Reservation = { id: number; holdId: number; memberId: number };
+export type MyReservationStatus = 'RESERVED' | 'RESERVATION_CANCELLED';
+export type MyReservation = {
+  id: number;
+  performanceTitle: string;
+  showtimeId: number;
+  startsAt: string;
+  seats: HoldSeat[];
+  totalPrice: number;
+  status: MyReservationStatus;
+};
+export type ReservationCancellation = { id: number; status: 'RESERVATION_CANCELLED' };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -84,4 +95,7 @@ export const api = {
     }),
   cancelHold: (holdId: number) => write<HoldCancellation>(`/api/holds/${holdId}/cancellation`, { method: 'POST' }),
   pay: (holdId: number) => write<Reservation>(`/api/holds/${holdId}/payment`, { method: 'POST' }),
+  myReservations: () => read<MyReservation[]>('/api/members/me/reservations'),
+  cancelReservation: (reservationId: number) =>
+    write<ReservationCancellation>(`/api/reservations/${reservationId}/cancellation`, { method: 'POST' }),
 };
