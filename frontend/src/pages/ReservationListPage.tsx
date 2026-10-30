@@ -5,14 +5,15 @@ import Toast from '../components/Toast';
 import { formatDateTime, formatPrice, formatSeat, parseLocalDateTime } from '../format';
 import { toApiError, useLoad } from '../useLoad';
 
-function isCancellable(reservation: MyReservation, now: number): boolean {
-  return reservation.status === 'RESERVED' && now < parseLocalDateTime(reservation.startsAt).getTime();
+function isCancellable(reservation: MyReservation, cancelled: boolean, now: number): boolean {
+  return !cancelled && reservation.status === 'RESERVED' && now < parseLocalDateTime(reservation.startsAt).getTime();
 }
 
 export default function ReservationListPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const state = useLoad(api.myReservations, [reloadKey]);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [cancelledIds, setCancelledIds] = useState<ReadonlySet<number>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
   const dismissNotice = useCallback(() => setNotice(null), []);
   const now = Date.now();
@@ -22,6 +23,7 @@ export default function ReservationListPage() {
     setCancellingId(reservationId);
     try {
       await api.cancelReservation(reservationId);
+      setCancelledIds(ids => new Set(ids).add(reservationId));
       setNotice('예매를 취소했습니다.');
     } catch (error) {
       setNotice(toApiError(error).message);
@@ -41,7 +43,7 @@ export default function ReservationListPage() {
       {state.status === 'done' && state.data.length > 0 && (
         <ul className="space-y-3">
           {state.data.map(reservation => {
-            const cancelled = reservation.status === 'RESERVATION_CANCELLED';
+            const cancelled = reservation.status === 'RESERVATION_CANCELLED' || cancelledIds.has(reservation.id);
             return (
               <li
                 key={reservation.id}
@@ -61,7 +63,7 @@ export default function ReservationListPage() {
                     {reservation.seats.map(formatSeat).join(', ')} · {formatPrice(reservation.totalPrice)}
                   </p>
                 </div>
-                {isCancellable(reservation, now) && (
+                {isCancellable(reservation, cancelled, now) && (
                   <button
                     type="button"
                     onClick={() => cancelReservation(reservation.id)}
