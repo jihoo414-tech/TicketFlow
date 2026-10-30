@@ -78,6 +78,7 @@ public class HoldService {
     public List<SeatResponse> getSeats(Long showtimeId) {
         Showtime showtime = showtimeService.findShowtime(showtimeId);
         List<Seat> seats = seatService.findSeats(showtime);
+        //좌석Id : 좌석 상태
         Map<Long, SeatStatus> occupiedSeatStatuses = findOccupiedSeatStatuses(showtimeId, now());
         return toSeatResponses(seats, showtime.getPrice(), occupiedSeatStatuses);
     }
@@ -94,8 +95,7 @@ public class HoldService {
     }
 
     private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long showtimeId, LocalDateTime now) {
-        return holdSeatRepository.findAllWithHoldByShowtimeId(showtimeId).stream()
-                .filter(holdSeat -> holdSeat.isOccupying(now))
+        return holdSeatRepository.findOccupyingByShowtimeId(showtimeId, HoldStatus.RESERVED, HoldStatus.HELD, now).stream()
                 .collect(Collectors.toMap(holdSeat -> holdSeat.getSeat().getId(), this::statusOf));
     }
 
@@ -154,6 +154,7 @@ public class HoldService {
 
     private List<SeatResponse> toSeatResponses(List<Seat> seats, int price, Map<Long, SeatStatus> occupiedSeatStatuses) {
         return seats.stream()
+                //넘겨준 좌석id : 상태 맵에 seats의 id가 있다면, 그 좌석은 이미 선점 불가, 없다면 선점 가능.
                 .map(seat -> SeatResponse.of(seat, price, occupiedSeatStatuses.getOrDefault(seat.getId(), SeatStatus.AVAILABLE)))
                 .toList();
     }
