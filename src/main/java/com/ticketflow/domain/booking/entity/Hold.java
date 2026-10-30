@@ -77,6 +77,14 @@ public class Hold {
         this.status = HoldStatus.CANCELLED;
     }
 
+    public void cancelReservation(LocalDateTime now) {
+        if (status == HoldStatus.RESERVATION_CANCELLED) {
+            return;
+        }
+        showtime.validateNotStarted(now);
+        this.status = HoldStatus.RESERVATION_CANCELLED;
+    }
+
     public boolean isOwnedBy(Long memberId) {
         return member.getId().equals(memberId);
     }

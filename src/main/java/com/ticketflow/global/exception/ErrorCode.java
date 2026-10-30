@@ -11,6 +11,7 @@ public enum ErrorCode {
     PERFORMANCE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 공연입니다."),
     SHOWTIME_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 회차입니다."),
     HOLD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 선점입니다."),
+    RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 예매입니다."),
     SEAT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 좌석이 포함되어 있습니다."),
 
 
@@ -28,6 +29,8 @@ public enum ErrorCode {
     HOLD_ALREADY_RESERVED(HttpStatus.CONFLICT, "이미 예매된 선점입니다."),
     HOLD_ALREADY_CANCELLED(HttpStatus.CONFLICT, "이미 취소된 선점입니다."),
     HOLD_EXPIRED(HttpStatus.CONFLICT, "선점이 만료되었습니다."),
+    RESERVATION_NOT_OWNED(HttpStatus.FORBIDDEN, "본인의 예매만 취소할 수 있습니다."),
+    SHOWTIME_ALREADY_STARTED(HttpStatus.CONFLICT, "회차가 이미 시작되어 예매를 취소할 수 없습니다."),
 
 
     MEMBER_ID_MISSING(HttpStatus.UNAUTHORIZED, "회원을 선택해 주세요."),
