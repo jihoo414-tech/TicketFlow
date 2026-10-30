@@ -116,6 +116,29 @@ class ReservationCancellationApiTest {
     }
 
     @Test
+    void 예매를_취소하면_그_좌석들은_4석_제한_계산에서_빠진다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(4);
+        testClock.setTo(BOOKING_OPEN_AT);
+        Long reservationId = pay(fixture.member(), hold(fixture.member(), fixture, fixture.seatIds()));
+
+        cancel(fixture.member(), reservationId);
+
+        hold(fixture.member(), fixture, fixture.seatIds());
+    }
+
+    @Test
+    void 여러_좌석의_예매를_취소하면_모든_좌석이_함께_열린다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(2);
+        Member otherMember = memberRepository.save(new Member("회원2"));
+        testClock.setTo(BOOKING_OPEN_AT);
+        Long reservationId = pay(fixture.member(), hold(fixture.member(), fixture, fixture.seatIds()));
+
+        cancel(fixture.member(), reservationId);
+
+        hold(otherMember, fixture, fixture.seatIds());
+    }
+
+    @Test
     void 없는_예매를_취소하면_실패한다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
 

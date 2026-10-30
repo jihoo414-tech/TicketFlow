@@ -87,6 +87,19 @@ class HoldCancellationApiTest {
         hold(otherMember, fixture, fixture.seatIds());
     }
 
+    @Test
+    void 선점을_취소한_회원은_같은_회차에서_다시_선점할_수_있다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        testClock.setTo(BOOKING_OPEN_AT);
+        Long holdId = hold(fixture.member(), fixture, fixture.seatIds());
+
+        mockMvc.perform(post("/api/holds/{holdId}/cancellation", holdId)
+                        .header("X-Member-Id", fixture.member().getId()))
+                .andExpect(status().isOk());
+
+        hold(fixture.member(), fixture, fixture.seatIds());
+    }
+
     private Long hold(Member member, HoldFixture fixture, List<Long> seatIds) throws Exception {
         String body = mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
                         .header("X-Member-Id", member.getId())
