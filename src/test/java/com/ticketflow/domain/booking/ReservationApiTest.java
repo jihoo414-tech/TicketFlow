@@ -92,6 +92,8 @@ class ReservationApiTest {
         Long holdId = hold(fixture.member(), fixture, List.of(seatIds.get(0), seatIds.get(1)));
         pay(fixture.member(), holdId);
 
+        testClock.advance(Duration.ofMinutes(5));
+
         mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].number").value(contains(1, 2, 3)))
