@@ -12,8 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
@@ -24,12 +22,12 @@ public class ReservationService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationResponse pay(Long memberId, Long holdId) {
-        LockedOccupancy locked = seatOccupancyLock.acquire(memberId, holdService.findSeatIds(holdId));
+        LockedOccupancy locked = seatOccupancyLock.acquireMemberAndSeats(memberId, holdService.findSeatIds(holdId));
 
         Hold hold = holdService.findHold(holdId);
         validateOwner(hold, memberId);
 
-        Reservation reservation = findOrReserve(hold, locked.lockedAt());
+        Reservation reservation = saveReservation(hold.reserve(locked.lockedAt()));
 
         return ReservationResponse.from(reservation);
     }
@@ -38,17 +36,6 @@ public class ReservationService {
         if (!hold.isOwnedBy(memberId)) {
             throw new BusinessException(ErrorCode.HOLD_NOT_OWNED);
         }
-    }
-
-    private Reservation findOrReserve(Hold hold, LocalDateTime now) {
-        if (hold.isReserved()) {
-            return findReservation(hold);
-        }
-        return saveReservation(hold.reserve(now));
-    }
-
-    private Reservation findReservation(Hold hold) {
-        return reservationRepository.findByHoldId(hold.getId()).orElseThrow();
     }
 
     private Reservation saveReservation(Reservation reservation) {

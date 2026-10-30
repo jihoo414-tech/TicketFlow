@@ -63,9 +63,18 @@ public class Hold {
     }
 
     public Reservation reserve(LocalDateTime paidAt) {
+        validateNotReserved();
+        validateNotCancelled();
         validateHeld(paidAt);
         this.status = HoldStatus.RESERVED;
         return new Reservation(this, member);
+    }
+
+    public void cancel(LocalDateTime now) {
+        validateNotReserved();
+        validateNotCancelled();
+        validateHeld(now);
+        this.status = HoldStatus.CANCELLED;
     }
 
     public boolean isOwnedBy(Long memberId) {
@@ -87,6 +96,18 @@ public class Hold {
     private void validateHeld(LocalDateTime now) {
         if (!isHeld(now)) {
             throw new BusinessException(ErrorCode.HOLD_EXPIRED);
+        }
+    }
+
+    private void validateNotReserved() {
+        if (isReserved()) {
+            throw new BusinessException(ErrorCode.HOLD_ALREADY_RESERVED);
+        }
+    }
+
+    private void validateNotCancelled() {
+        if (status == HoldStatus.CANCELLED) {
+            throw new BusinessException(ErrorCode.HOLD_ALREADY_CANCELLED);
         }
     }
 

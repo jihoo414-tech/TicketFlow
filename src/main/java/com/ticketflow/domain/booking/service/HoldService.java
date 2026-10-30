@@ -1,5 +1,6 @@
 package com.ticketflow.domain.booking.service;
 
+import com.ticketflow.domain.booking.dto.HoldCancellationResponse;
 import com.ticketflow.domain.booking.dto.HoldResponse;
 import com.ticketflow.domain.booking.dto.SeatResponse;
 import com.ticketflow.domain.booking.dto.SeatStatus;
@@ -9,6 +10,7 @@ import com.ticketflow.domain.booking.entity.HoldStatus;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
 import com.ticketflow.domain.booking.service.SeatOccupancyLock.LockedOccupancy;
+import com.ticketflow.domain.booking.service.SeatOccupancyLock.LockedSeats;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
 import com.ticketflow.domain.performance.service.SeatService;
@@ -43,7 +45,7 @@ public class HoldService {
 
         validateNoDuplicateSeats(seatIds);
 
-        LockedOccupancy locked = seatOccupancyLock.acquire(memberId, seatIds);
+        LockedOccupancy locked = seatOccupancyLock.acquireMemberAndSeats(memberId, seatIds);
 
 
         Showtime showtime = showtimeService.findShowtime(showtimeId);
@@ -60,6 +62,16 @@ public class HoldService {
         saveHoldSeats(hold, seats);
 
         return toResponse(hold, seats);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public HoldCancellationResponse cancel(Long memberId, Long holdId) {
+        LockedSeats locked = seatOccupancyLock.acquireSeats(findSeatIds(holdId));
+
+        Hold hold = findHold(holdId);
+        validateOwner(hold, memberId);
+        hold.cancel(locked.lockedAt());
+        return HoldCancellationResponse.from(hold);
     }
 
     @Transactional(readOnly = true)
@@ -87,9 +99,16 @@ public class HoldService {
                 .collect(Collectors.toMap(holdSeat -> holdSeat.getSeat().getId(), this::statusOf));
     }
 
+    //중복된 좌석으로 요청이 들어오는 지 확인하는데, 사용자의 의도와 다르게 중복된 요청으로 들어오는 경우가 있을수도 있어서 추후 검증 필요.
     private void validateNoDuplicateSeats(List<Long> seatIds) {
         if (Set.copyOf(seatIds).size() != seatIds.size()) {
             throw new BusinessException(ErrorCode.DUPLICATE_SEAT);
+        }
+    }
+
+    private void validateOwner(Hold hold, Long memberId) {
+        if (!hold.isOwnedBy(memberId)) {
+            throw new BusinessException(ErrorCode.HOLD_NOT_OWNED);
         }
     }
 
