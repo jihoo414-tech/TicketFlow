@@ -97,6 +97,69 @@ class HoldTest {
                 .isEqualTo(ErrorCode.HOLD_EXPIRED);
     }
 
+    @Test
+    void 예매된_선점은_다시_예매할_수_없다() {
+        Hold hold = Hold.create(MEMBER, SHOWTIME, seats(1), BOOKING_OPEN_AT);
+        hold.reserve(BOOKING_OPEN_AT.plusMinutes(1));
+
+        assertThatThrownBy(() -> hold.reserve(BOOKING_OPEN_AT.plusMinutes(2)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.HOLD_ALREADY_RESERVED);
+    }
+
+    @Test
+    void 취소된_선점은_예매할_수_없다() {
+        Hold hold = Hold.create(MEMBER, SHOWTIME, seats(1), BOOKING_OPEN_AT);
+        hold.cancel(BOOKING_OPEN_AT.plusMinutes(1));
+
+        assertThatThrownBy(() -> hold.reserve(BOOKING_OPEN_AT.plusMinutes(2)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.HOLD_ALREADY_CANCELLED);
+    }
+
+    @Test
+    void 선점_만료_시각_전에_선점을_취소하면_취소_상태가_된다() {
+        Hold hold = Hold.create(MEMBER, SHOWTIME, seats(1), BOOKING_OPEN_AT);
+
+        hold.cancel(BOOKING_OPEN_AT.plusMinutes(5).minusSeconds(1));
+
+        assertThat(hold.getStatus()).isEqualTo(HoldStatus.CANCELLED);
+    }
+
+    @Test
+    void 예매된_선점은_취소할_수_없다() {
+        Hold hold = Hold.create(MEMBER, SHOWTIME, seats(1), BOOKING_OPEN_AT);
+        hold.reserve(BOOKING_OPEN_AT.plusMinutes(1));
+
+        assertThatThrownBy(() -> hold.cancel(BOOKING_OPEN_AT.plusMinutes(2)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.HOLD_ALREADY_RESERVED);
+    }
+
+    @Test
+    void 선점_만료_시각_정각에는_선점을_취소할_수_없다() {
+        Hold hold = Hold.create(MEMBER, SHOWTIME, seats(1), BOOKING_OPEN_AT);
+
+        assertThatThrownBy(() -> hold.cancel(BOOKING_OPEN_AT.plusMinutes(5)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.HOLD_EXPIRED);
+    }
+
+    @Test
+    void 취소된_선점은_다시_취소할_수_없다() {
+        Hold hold = Hold.create(MEMBER, SHOWTIME, seats(1), BOOKING_OPEN_AT);
+        hold.cancel(BOOKING_OPEN_AT.plusMinutes(1));
+
+        assertThatThrownBy(() -> hold.cancel(BOOKING_OPEN_AT.plusMinutes(2)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.HOLD_ALREADY_CANCELLED);
+    }
+
     private static List<Seat> seats(int count) {
         return IntStream.rangeClosed(1, count)
                 .mapToObj(seatNo -> new Seat(SHOWTIME, "A", seatNo))

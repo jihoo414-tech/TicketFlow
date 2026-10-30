@@ -19,12 +19,20 @@ public class SeatOccupancyLock {
     private final SeatService seatService;
     private final Clock clock;
 
-    public LockedOccupancy acquire(Long memberId, List<Long> seatIds) {
+    public LockedOccupancy acquireMemberAndSeats(Long memberId, List<Long> seatIds) {
         Member member = memberService.findLockedMember(memberId);
+        LockedSeats locked = acquireSeats(seatIds);
+        return new LockedOccupancy(member, locked.seats(), locked.lockedAt());
+    }
+
+    public LockedSeats acquireSeats(List<Long> seatIds) {
         List<Seat> seats = seatService.findLockedSeats(seatIds);
-        return new LockedOccupancy(member, seats, LocalDateTime.now(clock));
+        return new LockedSeats(seats, LocalDateTime.now(clock));
     }
 
     public record LockedOccupancy(Member member, List<Seat> seats, LocalDateTime lockedAt) {
+    }
+
+    public record LockedSeats(List<Seat> seats, LocalDateTime lockedAt) {
     }
 }
