@@ -46,7 +46,8 @@ CREATE TABLE hold (
     expires_at  DATETIME    NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (member_id) REFERENCES member (id),
-    FOREIGN KEY (showtime_id) REFERENCES showtime (id)
+    FOREIGN KEY (showtime_id) REFERENCES showtime (id),
+    KEY idx_hold_showtime_status_expires (showtime_id, status, expires_at)
 );
 
 CREATE TABLE hold_seat (

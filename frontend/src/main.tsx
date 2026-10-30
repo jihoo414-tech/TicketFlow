@@ -4,6 +4,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import { MemberProvider, useMember } from './member';
 import PerformanceListPage from './pages/PerformanceListPage';
+import ReservationListPage from './pages/ReservationListPage';
 import SeatPage from './pages/SeatPage';
 import ShowtimeListPage from './pages/ShowtimeListPage';
 import './index.css';
@@ -20,6 +21,7 @@ function AppRoutes() {
         <Route index element={<PerformanceListPage />} />
         <Route path="performances/:performanceId" element={<ShowtimeListPage />} />
         <Route path="performances/:performanceId/showtimes/:showtimeId" element={<SeatPage />} />
+        <Route path="reservations" element={<ReservationListPage />} />
       </Route>
     </Routes>
   );
