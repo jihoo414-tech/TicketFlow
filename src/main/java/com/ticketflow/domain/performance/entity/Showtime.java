@@ -50,4 +50,10 @@ public class Showtime {
             throw new BusinessException(ErrorCode.BOOKING_NOT_OPEN);
         }
     }
+
+    public void validateNotStarted(LocalDateTime now) {
+        if (!now.isBefore(startsAt)) {
+            throw new BusinessException(ErrorCode.SHOWTIME_ALREADY_STARTED);
+        }
+    }
 }
