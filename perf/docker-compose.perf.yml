@@ -1,0 +1,4 @@
+services:
+  mysql:
+    volumes:
+      - ./perf/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
