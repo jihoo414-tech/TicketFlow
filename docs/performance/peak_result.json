@@ -1,0 +1,21 @@
+{
+  "searches": [
+    {
+      "search": 1,
+      "n_max": 12,
+      "bounded": true
+    },
+    {
+      "search": 2,
+      "n_max": 10,
+      "bounded": true
+    },
+    {
+      "search": 3,
+      "n_max": 10,
+      "bounded": true
+    }
+  ],
+  "spread": 0.2,
+  "admission": 8
+}
