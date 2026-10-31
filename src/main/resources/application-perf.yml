@@ -10,3 +10,9 @@ logging:
     org.hibernate.SQL: 'OFF'
     org.hibernate.orm.jdbc.bind: 'OFF'
     org.hibernate.orm.query.hql: 'OFF'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
