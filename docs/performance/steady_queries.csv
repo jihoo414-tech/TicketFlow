@@ -1,0 +1,61 @@
+digest,count,avg_ms,max_ms,total_ms,lock_ms,rows_examined,vus
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `showtime_id` = ? ORDER BY `s1_0` . `seat_row` , `s1_0` . `seat_no`",364,3.018,8.827,1098.6,0.5,2184000,10
+COMMIT,607,1.424,34.089,864.6,0.0,0,10
+"SELECT `hs1_0` . `id` , `h1_0` . `id` , `h1_0` . `expires_at` , `h1_0` . `member_id` , `h1_0` . `showtime_id` , `h1_0` . `status` , `hs1_0` . `seat_id` FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `showtime_id` = ? AND ( `h1_0` . `status` = ? OR ( `h1_0` . `status` = ? AND `h1_0` . `expires_at` > ? ) )",364,0.835,3.889,304.0,0.9,59175,10
+SET `autocommit` = ?,1216,0.113,1.59,137.8,0.0,0,10
+"SELECT `s1_0` . `id` , `s1_0` . `booking_open_at` , `s1_0` . `performance_id` , `s1_0` . `price` , `s1_0` . `starts_at` FROM `showtime` `s1_0` WHERE `s1_0` . `id` = ?",486,0.262,0.752,127.2,1.2,486,10
+SHOW GLOBAL STATUS WHERE `Variable_name` IN (...),197,0.543,1.567,107.0,0.2,1182,10
+SET SESSION TRANSACTION READ ONLY,486,0.161,0.463,78.5,0.0,0,10
+"INSERT INTO `hold_seat` ( `hold_id` , `seat_id` ) VALUES (...)",242,0.229,8.487,55.4,0.3,0,10
+SET SESSION TRANSACTION READ WRITE,486,0.095,0.379,46.2,0.0,0,10
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `id` IN (...) ORDER BY `s1_0` . `id` FOR UPDATE OF `s1_0`",122,0.358,0.852,43.7,0.3,244,10
+SELECT COUNT ( * ) FROM MEMBER `m1_0` WHERE `m1_0` . `id` = ?,122,0.335,5.961,40.8,0.3,122,10
+SELECT COUNT ( `hs1_0` . `id` ) FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `member_id` = ? AND `h1_0` . `showtime_id` = ? AND `h1_0` . `status` = ?,122,0.298,1.65,36.3,0.2,0,10
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `showtime_id` = ? ORDER BY `s1_0` . `seat_row` , `s1_0` . `seat_no`",903,2.831,13.014,2556.0,1.1,5418000,25
+COMMIT,1505,1.235,22.171,1858.2,0.0,0,25
+"SELECT `hs1_0` . `id` , `h1_0` . `id` , `h1_0` . `expires_at` , `h1_0` . `member_id` , `h1_0` . `showtime_id` , `h1_0` . `status` , `hs1_0` . `seat_id` FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `showtime_id` = ? AND ( `h1_0` . `status` = ? OR ( `h1_0` . `status` = ? AND `h1_0` . `expires_at` > ? ) )",903,1.16,6.475,1047.7,1.9,364071,25
+SET `autocommit` = ?,3010,0.105,3.055,314.9,0.0,0,25
+"SELECT `s1_0` . `id` , `s1_0` . `booking_open_at` , `s1_0` . `performance_id` , `s1_0` . `price` , `s1_0` . `starts_at` FROM `showtime` `s1_0` WHERE `s1_0` . `id` = ?",1204,0.231,0.837,278.6,3.1,1204,25
+SET SESSION TRANSACTION READ ONLY,1204,0.151,0.567,181.6,0.0,0,25
+"INSERT INTO `hold_seat` ( `hold_id` , `seat_id` ) VALUES (...)",602,0.206,4.857,124.0,0.7,0,25
+SHOW GLOBAL STATUS WHERE `Variable_name` IN (...),197,0.514,2.411,101.2,0.2,1182,25
+SET SESSION TRANSACTION READ WRITE,1204,0.084,0.843,100.8,0.0,0,25
+"INSERT INTO `hold` ( `expires_at` , `member_id` , `showtime_id` , STATUS ) VALUES (...)",301,0.305,8.147,91.7,0.4,0,25
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `id` IN (...) ORDER BY `s1_0` . `id` FOR UPDATE OF `s1_0`",301,0.273,0.862,82.0,0.5,602,25
+SELECT COUNT ( * ) FROM MEMBER `m1_0` WHERE `m1_0` . `id` = ?,301,0.267,1.484,80.4,0.8,301,25
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `showtime_id` = ? ORDER BY `s1_0` . `seat_row` , `s1_0` . `seat_no`",1835,2.931,15.702,5378.0,2.6,11010000,50
+COMMIT,3063,1.29,112.18,3950.8,0.0,0,50
+"SELECT `hs1_0` . `id` , `h1_0` . `id` , `h1_0` . `expires_at` , `h1_0` . `member_id` , `h1_0` . `showtime_id` , `h1_0` . `status` , `hs1_0` . `seat_id` FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `showtime_id` = ? AND ( `h1_0` . `status` = ? OR ( `h1_0` . `status` = ? AND `h1_0` . `expires_at` > ? ) )",1835,2.082,14.588,3819.9,4.3,2078517,50
+SET `autocommit` = ?,6154,0.105,1.788,647.9,0.0,0,50
+"SELECT `s1_0` . `id` , `s1_0` . `booking_open_at` , `s1_0` . `performance_id` , `s1_0` . `price` , `s1_0` . `starts_at` FROM `showtime` `s1_0` WHERE `s1_0` . `id` = ?",2456,0.232,2.393,570.2,5.7,2455,50
+SET SESSION TRANSACTION READ ONLY,2456,0.155,1.679,379.5,0.0,0,50
+"INSERT INTO `hold_seat` ( `hold_id` , `seat_id` ) VALUES (...)",1213,0.213,9.871,258.1,1.4,0,50
+SET SESSION TRANSACTION READ WRITE,2456,0.088,1.527,215.3,0.0,0,50
+"INSERT INTO `hold` ( `expires_at` , `member_id` , `showtime_id` , STATUS ) VALUES (...)",607,0.297,8.916,180.3,0.9,0,50
+SELECT COUNT ( * ) FROM MEMBER `m1_0` WHERE `m1_0` . `id` = ?,621,0.272,5.096,169.1,1.5,621,50
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `id` IN (...) ORDER BY `s1_0` . `id` FOR UPDATE OF `s1_0`",621,0.272,1.84,169.1,1.1,1242,50
+SELECT COUNT ( `hs1_0` . `id` ) FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `member_id` = ? AND `h1_0` . `showtime_id` = ? AND `h1_0` . `status` = ?,621,0.266,5.778,165.5,0.9,0,50
+"SELECT `hs1_0` . `id` , `h1_0` . `id` , `h1_0` . `expires_at` , `h1_0` . `member_id` , `h1_0` . `showtime_id` , `h1_0` . `status` , `hs1_0` . `seat_id` FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `showtime_id` = ? AND ( `h1_0` . `status` = ? OR ( `h1_0` . `status` = ? AND `h1_0` . `expires_at` > ? ) )",3656,4.997,,18270.2,8.6,7798473,100
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `showtime_id` = ? ORDER BY `s1_0` . `seat_row` , `s1_0` . `seat_no`",3656,3.627,,13260.1,4.7,21930000,100
+COMMIT,6052,1.463,112.279,8851.6,0.0,0,100
+SET `autocommit` = ?,12204,0.119,14.09,1454.7,0.0,0,100
+"SELECT `s1_0` . `id` , `s1_0` . `booking_open_at` , `s1_0` . `performance_id` , `s1_0` . `price` , `s1_0` . `starts_at` FROM `showtime` `s1_0` WHERE `s1_0` . `id` = ?",4879,0.24,9.213,1172.5,11.1,4879,100
+SET SESSION TRANSACTION READ ONLY,4877,0.172,13.361,838.9,0.0,0,100
+"INSERT INTO `hold_seat` ( `hold_id` , `seat_id` ) VALUES (...)",2352,0.269,22.427,632.9,2.8,0,100
+SET SESSION TRANSACTION READ WRITE,4879,0.128,12.876,622.6,0.0,0,100
+"INSERT INTO `hold` ( `expires_at` , `member_id` , `showtime_id` , STATUS ) VALUES (...)",1176,0.358,13.305,420.9,1.9,0,100
+"SELECT `hs1_0` . `id` , `h1_0` . `id` , `h1_0` . `expires_at` , `h1_0` . `member_id` , `h1_0` . `showtime_id` , `h1_0` . `status` , `hs1_0` . `seat_id` FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `hs1_0` . `seat_id` IN (...)",1223,0.305,9.7,373.1,1.8,96,100
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `id` IN (...) ORDER BY `s1_0` . `id` FOR UPDATE OF `s1_0`",1223,0.304,9.957,371.8,2.0,2442,100
+SELECT COUNT ( `hs1_0` . `id` ) FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `member_id` = ? AND `h1_0` . `showtime_id` = ? AND `h1_0` . `status` = ?,1223,0.285,8.718,348.4,1.7,0,100
+"SELECT `s1_0` . `id` , `s1_0` . `seat_no` , `s1_0` . `seat_row` , `s1_0` . `showtime_id` FROM `seat` `s1_0` WHERE `s1_0` . `showtime_id` = ? ORDER BY `s1_0` . `seat_row` , `s1_0` . `seat_no`",6865,7.333,,50338.9,10.2,41196000,150
+"SELECT `hs1_0` . `id` , `h1_0` . `id` , `h1_0` . `expires_at` , `h1_0` . `member_id` , `h1_0` . `showtime_id` , `h1_0` . `status` , `hs1_0` . `seat_id` FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `showtime_id` = ? AND ( `h1_0` . `status` = ? OR ( `h1_0` . `status` = ? AND `h1_0` . `expires_at` > ? ) )",6859,6.578,,45115.4,35.9,5562783,150
+COMMIT,7475,1.52,139.13,11359.1,0.0,0,150
+SET `autocommit` = ?,14984,0.227,26.839,3402.4,0.0,0,150
+"SELECT `s1_0` . `id` , `s1_0` . `booking_open_at` , `s1_0` . `performance_id` , `s1_0` . `price` , `s1_0` . `starts_at` FROM `showtime` `s1_0` WHERE `s1_0` . `id` = ?",7179,0.386,23.292,2774.7,28.8,7176,150
+SET SESSION TRANSACTION READ WRITE,7174,0.371,18.829,2663.6,0.0,0,150
+SET SESSION TRANSACTION READ ONLY,7180,0.234,,1682.3,0.0,0,150
+"INSERT INTO `hold_seat` ( `hold_id` , `seat_id` ) VALUES (...)",608,0.747,34.783,454.0,1.0,0,150
+SELECT COUNT ( `hs1_0` . `id` ) FROM `hold_seat` `hs1_0` JOIN `hold` `h1_0` ON `h1_0` . `id` = `hs1_0` . `hold_id` WHERE `h1_0` . `member_id` = ? AND `h1_0` . `showtime_id` = ? AND `h1_0` . `status` = ?,315,0.832,21.113,262.0,0.6,0,150
+"INSERT INTO `hold` ( `expires_at` , `member_id` , `showtime_id` , STATUS ) VALUES (...)",304,0.86,26.91,261.5,0.6,0,150
+SELECT COUNT ( * ) FROM MEMBER `m1_0` WHERE `m1_0` . `id` = ?,315,0.641,14.288,201.9,1.0,315,150
+"SELECT `h1_0` . `id` , `h1_0` . `expires_at` , `h1_0` . `member_id` , `h1_0` . `showtime_id` , `h1_0` . `status` FROM `hold` `h1_0` WHERE `h1_0` . `member_id` = ? AND `h1_0` . `showtime_id` = ?",315,0.62,20.565,195.4,0.5,0,150
