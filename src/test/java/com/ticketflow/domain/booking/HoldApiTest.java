@@ -289,6 +289,37 @@ class HoldApiTest {
                         .header("X-Member-Id", fixture.member().getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SEAT_COUNT"));
+    }
+
+    @Test
+    void 빈_좌석_목록으로_선점을_요청하면_잘못된_요청으로_거절된다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": []}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SEAT_COUNT"));
+    }
+
+    @Test
+    void 좌석_목록에_null이_있으면_잘못된_요청으로_거절된다() throws Exception {
+        HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
+        testClock.setTo(BOOKING_OPEN_AT);
+
+        mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
+                        .header("X-Member-Id", fixture.member().getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"seatIds": [%d, null]}
+                                """.formatted(fixture.seatIds().get(0))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SEAT_ID"));
     }
 }

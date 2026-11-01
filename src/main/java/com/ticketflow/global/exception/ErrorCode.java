@@ -24,6 +24,7 @@ public enum ErrorCode {
     BOOKING_NOT_OPEN(HttpStatus.BAD_REQUEST, "아직 예매 오픈 시각이 되지 않았습니다."),
     INVALID_SEAT_COUNT(HttpStatus.BAD_REQUEST, "좌석은 1석 이상 4석 이하로 선택해 주세요."),
     DUPLICATE_SEAT(HttpStatus.BAD_REQUEST, "같은 좌석이 중복으로 포함되어 있습니다."),
+    INVALID_SEAT_ID(HttpStatus.BAD_REQUEST, "좌석 식별 값이 올바르지 않습니다."),
     SEAT_NOT_IN_SHOWTIME(HttpStatus.BAD_REQUEST, "이 회차의 좌석이 아닌 좌석이 포함되어 있습니다."),
     HOLD_NOT_OWNED(HttpStatus.FORBIDDEN, "본인의 선점만 결제하거나 취소할 수 있습니다."),
     HOLD_ALREADY_RESERVED(HttpStatus.CONFLICT, "이미 예매된 선점입니다."),
