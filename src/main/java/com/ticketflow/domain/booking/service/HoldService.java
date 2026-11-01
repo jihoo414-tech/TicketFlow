@@ -2,6 +2,7 @@ package com.ticketflow.domain.booking.service;
 
 import com.ticketflow.domain.booking.dto.HoldCancellationResponse;
 import com.ticketflow.domain.booking.dto.HoldResponse;
+import com.ticketflow.domain.booking.dto.OccupiedSeat;
 import com.ticketflow.domain.booking.dto.SeatResponse;
 import com.ticketflow.domain.booking.dto.SeatStatus;
 import com.ticketflow.domain.booking.entity.Hold;
@@ -11,6 +12,7 @@ import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
 import com.ticketflow.domain.booking.service.SeatOccupancyLock.LockedOccupancy;
 import com.ticketflow.domain.booking.service.SeatOccupancyLock.LockedSeats;
+import com.ticketflow.domain.performance.dto.SeatPosition;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
 import com.ticketflow.domain.performance.service.SeatService;
@@ -77,7 +79,7 @@ public class HoldService {
     @Transactional(readOnly = true)
     public List<SeatResponse> getSeats(Long showtimeId) {
         Showtime showtime = showtimeService.findShowtime(showtimeId);
-        List<Seat> seats = seatService.findSeats(showtime);
+        List<SeatPosition> seats = seatService.findSeatPositions(showtime);
         //좌석Id : 좌석 상태
         Map<Long, SeatStatus> occupiedSeatStatuses = findOccupiedSeatStatuses(showtimeId, now());
         return toSeatResponses(seats, showtime.getPrice(), occupiedSeatStatuses);
@@ -103,7 +105,7 @@ public class HoldService {
 
     private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long showtimeId, LocalDateTime now) {
         return holdSeatRepository.findOccupyingByShowtimeId(showtimeId, HoldStatus.RESERVED, HoldStatus.HELD, now).stream()
-                .collect(Collectors.toMap(holdSeat -> holdSeat.getSeat().getId(), this::statusOf));
+                .collect(Collectors.toMap(OccupiedSeat::seatId, OccupiedSeat::seatStatus));
     }
 
     //중복된 좌석으로 요청이 들어오는 지 확인하는데, 사용자의 의도와 다르게 중복된 요청으로 들어오는 경우가 있을수도 있어서 추후 검증 필요.
@@ -159,14 +161,11 @@ public class HoldService {
         return HoldResponse.of(hold.getId(), seats, hold.getExpiresAt());
     }
 
-    private List<SeatResponse> toSeatResponses(List<Seat> seats, int price, Map<Long, SeatStatus> occupiedSeatStatuses) {
+    private List<SeatResponse> toSeatResponses(List<SeatPosition> seats, int price, Map<Long, SeatStatus> occupiedSeatStatuses) {
         return seats.stream()
                 //넘겨준 좌석id : 상태 맵에 seats의 id가 있다면, 그 좌석은 이미 선점 불가, 없다면 선점 가능.
-                .map(seat -> SeatResponse.of(seat, price, occupiedSeatStatuses.getOrDefault(seat.getId(), SeatStatus.AVAILABLE)))
+                .map(seat -> SeatResponse.of(seat, price, occupiedSeatStatuses.getOrDefault(seat.id(), SeatStatus.AVAILABLE)))
                 .toList();
     }
 
-    private SeatStatus statusOf(HoldSeat holdSeat) {
-        return holdSeat.isReserved() ? SeatStatus.RESERVED : SeatStatus.HELD;
-    }
 }
