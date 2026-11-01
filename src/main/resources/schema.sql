@@ -7,9 +7,12 @@ DROP TABLE IF EXISTS performance;
 DROP TABLE IF EXISTS member;
 
 CREATE TABLE member (
-    id   BIGINT      NOT NULL AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL,
-    PRIMARY KEY (id)
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    email         VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(100) NOT NULL,
+    name          VARCHAR(50)  NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_member_email (email)
 );
 
 CREATE TABLE performance (

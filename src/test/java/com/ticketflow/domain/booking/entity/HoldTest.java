@@ -1,6 +1,7 @@
 package com.ticketflow.domain.booking.entity;
 
 import com.ticketflow.domain.member.entity.Member;
+import com.ticketflow.fixture.TestMembers;
 import com.ticketflow.domain.performance.entity.Performance;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
@@ -18,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class HoldTest {
 
     private static final LocalDateTime BOOKING_OPEN_AT = LocalDateTime.of(2026, 10, 1, 10, 0, 0);
-    private static final Member MEMBER = new Member("회원1");
+    private static final Member MEMBER = TestMembers.member("회원1");
     private static final Showtime SHOWTIME = Showtime.create(
             new Performance("레미제라블"),
             LocalDateTime.of(2026, 11, 1, 19, 0, 0),

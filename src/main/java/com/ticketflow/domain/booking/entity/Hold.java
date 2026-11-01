@@ -56,6 +56,10 @@ public class Hold {
         return new Hold(member, showtime, HoldStatus.HELD, now.plus(HOLD_DURATION));
     }
 
+    public static int remainingSeatCount(long reservedSeatCount) {
+        return (int) Math.max(0, MAX_SEAT_COUNT - reservedSeatCount);
+    }
+
     public static void validateSeatLimit(long reservedSeatCount, int seatCount) {
         if (reservedSeatCount + seatCount > MAX_SEAT_COUNT) {
             throw new BusinessException(ErrorCode.SEAT_LIMIT_EXCEEDED);

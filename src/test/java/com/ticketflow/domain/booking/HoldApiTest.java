@@ -1,6 +1,8 @@
 package com.ticketflow.domain.booking;
 
 import com.ticketflow.TestClock;
+import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.TestMembers;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.member.entity.Member;
 import com.ticketflow.domain.member.repository.MemberRepository;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +40,9 @@ class HoldApiTest {
     MockMvc mockMvc;
 
     @Autowired
+    AuthHeaders authHeaders;
+
+    @Autowired
     TestClock testClock;
 
     @Autowired
@@ -56,7 +62,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -73,12 +79,12 @@ class HoldApiTest {
     @Test
     void 선점하려는_묶음에_다른_선점의_좌석이_있으면_선점이_실패한다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(4);
-        Member otherMember = memberRepository.save(new Member("회원2"));
+        Member otherMember = memberRepository.save(TestMembers.member("회원2"));
         List<Long> seatIds = fixture.seatIds();
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -86,7 +92,7 @@ class HoldApiTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", otherMember.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(otherMember.getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -102,7 +108,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -110,7 +116,7 @@ class HoldApiTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -126,7 +132,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -134,7 +140,7 @@ class HoldApiTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", otherShowtimeFixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -149,7 +155,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -165,7 +171,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -181,7 +187,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -197,7 +203,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -207,7 +213,7 @@ class HoldApiTest {
         testClock.advance(Duration.ofMinutes(5));
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -218,11 +224,11 @@ class HoldApiTest {
     @Test
     void 선점_만료된_좌석은_다른_회원이_선점할_수_있다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
-        Member otherMember = memberRepository.save(new Member("회원2"));
+        Member otherMember = memberRepository.save(TestMembers.member("회원2"));
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -232,7 +238,7 @@ class HoldApiTest {
         testClock.advance(Duration.ofMinutes(5));
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", otherMember.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(otherMember.getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -247,7 +253,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -266,7 +272,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -286,7 +292,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
@@ -299,7 +305,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": []}
@@ -314,7 +320,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": [%d, null]}
@@ -329,7 +335,7 @@ class HoldApiTest {
         testClock.setTo(BOOKING_OPEN_AT);
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", Long.MAX_VALUE)
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(Long.MAX_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
