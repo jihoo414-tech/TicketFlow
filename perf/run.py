@@ -26,15 +26,13 @@ DB_CONTAINER = 'ticketflow-aws-mysql-1'
 CPU_LIMIT = 2
 MAIN_SHOWTIME = 1
 
-STEADY_VUS = [10, 25, 50, 100, 150]
-STEADY_DURATION = '3m'
-STEADY_SEATS_P95_TARGET = 300
-STEADY_HOLD_P95_TARGET = 500
-STEADY_ERROR_RATE_TARGET = 0.001
+WARMUP_SHOWTIME = 2
+SEAT_COUNTS = [250, 500, 750, 1000]
+SEATS_PER_ROW = 25
+WARMUP_SEATS = 2000
 
-PEAK_START = 50
-PEAK_CAP = 3000
-PEAK_RESOLUTION = 10
+PEAK_START = 10
+PEAK_RESOLUTION = 2
 PEAK_P95_TARGET = 500
 PEAK_SEARCHES = 3
 
@@ -80,9 +78,16 @@ def fetch_json(path, timeout=1.0):
         return json.load(res)
 
 
-def reset():
+def reset(seats):
     sh(COMPOSE + ['down', '-v', '--remove-orphans'], cwd=ROOT)
     sh(COMPOSE + ['up', '-d', '--wait'], cwd=ROOT)
+    wait_for_app()
+    seed_seats(MAIN_SHOWTIME, seats)
+    seed_seats(WARMUP_SHOWTIME, WARMUP_SEATS)
+    mysql('ANALYZE TABLE member, performance, showtime, seat, hold, hold_seat, reservation')
+
+
+def wait_for_app():
     deadline = time.time() + 120
     while time.time() < deadline:
         try:
@@ -92,6 +97,15 @@ def reset():
             pass
         time.sleep(1)
     raise RuntimeError('앱이 120초 안에 뜨지 않았다')
+
+
+def seed_seats(showtime_id, count):
+    mysql(f"""
+        SET SESSION cte_max_recursion_depth = {count};
+        INSERT INTO seat (showtime_id, seat_row, seat_no)
+        WITH RECURSIVE seq (n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM seq WHERE n < {count - 1})
+        SELECT {showtime_id}, CONCAT('R', LPAD(FLOOR(n / {SEATS_PER_ROW}) + 1, 3, '0')), MOD(n, {SEATS_PER_ROW}) + 1
+        FROM seq""")
 
 
 def k6(script, run_dir, env):
@@ -147,12 +161,15 @@ class Collector:
     def sample_app(self, t):
         gc = self.metric('jvm.gc.pause')
         acquire = self.metric('hikaricp.connections.acquire')
+        usage = self.metric('hikaricp.connections.usage')
         self.app.append({
             't': t,
             'hikari_pending': self.metric('hikaricp.connections.pending').get('VALUE'),
             'hikari_active': self.metric('hikaricp.connections.active').get('VALUE'),
             'hikari_acquire_count': acquire.get('COUNT'),
             'hikari_acquire_total_s': acquire.get('TOTAL_TIME'),
+            'hikari_usage_count': usage.get('COUNT'),
+            'hikari_usage_total_s': usage.get('TOTAL_TIME'),
             'heap_used_bytes': self.metric('jvm.memory.used', 'area:heap').get('VALUE'),
             'gc_pause_count': gc.get('COUNT', 0.0),
             'gc_pause_total_s': gc.get('TOTAL_TIME', 0.0),
@@ -288,6 +305,9 @@ def resource_summary(collector, started, ended):
         acquire_count = app.hikari_acquire_count.iloc[-1] - app.hikari_acquire_count.iloc[0]
         acquire_total = app.hikari_acquire_total_s.iloc[-1] - app.hikari_acquire_total_s.iloc[0]
         result['hikari_acquire_avg_ms'] = acquire_total / acquire_count * 1000 if acquire_count else float('nan')
+        usage_count = app.hikari_usage_count.iloc[-1] - app.hikari_usage_count.iloc[0]
+        usage_total = app.hikari_usage_total_s.iloc[-1] - app.hikari_usage_total_s.iloc[0]
+        result['hikari_usage_avg_ms'] = usage_total / usage_count * 1000 if usage_count else float('nan')
         result['heap_max_mib'] = app.heap_used_bytes.max() / 2 ** 20
         result['gc_pause_count'] = app.gc_pause_count.iloc[-1] - app.gc_pause_count.iloc[0]
         result['gc_pause_total_ms'] = (app.gc_pause_total_s.iloc[-1] - app.gc_pause_total_s.iloc[0]) * 1000
@@ -324,9 +344,9 @@ def per_second(k6_frame, collector, started):
     return timeline
 
 
-def measure(run_dir, script, env):
+def measure(run_dir, script, env, seats):
     run_dir.mkdir(parents=True, exist_ok=True)
-    reset()
+    reset(seats)
     warmup(run_dir)
     with Collector() as collector:
         time.sleep(2)
@@ -336,64 +356,57 @@ def measure(run_dir, script, env):
         time.sleep(2)
     summary = summarize(run_dir, collector, started, ended)
     summary['k6_exit_code'] = exit_code
+    summary['seats'] = seats
     return summary
 
 
-def steady(session):
-    rows = []
-    for vus in STEADY_VUS:
-        log(f'정상 부하 VU {vus} 시작 ({STEADY_DURATION})')
-        summary = measure(session / f'steady-vu{vus:03d}', 'steady.js',
-                          {'VUS': vus, 'DURATION': STEADY_DURATION, 'SHOWTIME_ID': MAIN_SHOWTIME})
-        summary['vus'] = vus
-        summary['meets_spec'] = (summary['seats_p95_ms'] <= STEADY_SEATS_P95_TARGET
-                                 and summary['hold_p95_ms'] <= STEADY_HOLD_P95_TARGET
-                                 and summary['error_rate'] < STEADY_ERROR_RATE_TARGET and summary['integrity_ok'])
-        summary['meets_adr'] = (summary['seats_p95_ms'] <= PEAK_P95_TARGET and summary['hold_p95_ms'] <= PEAK_P95_TARGET
-                                and summary['system_errors'] == 0 and summary['integrity_ok'])
-        log(f"  조회 p95 {summary['seats_p95_ms']:.0f}ms, 선점 p95 {summary['hold_p95_ms']:.0f}ms, "
-            f"RPS {summary['rps']:.1f}, 오류 {summary['system_errors']}, 정합성 {summary['integrity_ok']}")
-        rows.append(summary)
-    export_steady(session, rows)
-
-
-def export_steady(session, rows):
+def run_trial(session, seats, label, tag, n, trials, csv_name, **extra):
+    log(f'{seats}석 오픈 피크 {label}: 활성 회원 {n}명')
+    summary = measure(session / f'peak-seats{seats:04d}-{tag}-n{n:04d}', 'peak.js',
+                      {'ACTIVE_MEMBERS': n, 'SHOWTIME_ID': MAIN_SHOWTIME}, seats)
+    summary.update({**extra, 'active_members': n})
+    summary['passed'] = bool(summary['seats_p95_ms'] <= PEAK_P95_TARGET and summary['hold_p95_ms'] <= PEAK_P95_TARGET
+                             and summary['system_errors'] == 0 and summary['integrity_ok'])
+    log(f"  조회 p95 {summary['seats_p95_ms']:.0f}ms, 선점 p95 {summary['hold_p95_ms']:.0f}ms, "
+        f"커넥션 대기 {summary.get('hikari_acquire_avg_ms', float('nan')):.1f}ms, "
+        f"커넥션 사용 {summary.get('hikari_usage_avg_ms', float('nan')):.1f}ms, "
+        f"오류 {summary['system_errors']}, 정합성 {summary['integrity_ok']} → {'통과' if summary['passed'] else '실패'}")
+    trials.append(summary)
     RESULTS.mkdir(parents=True, exist_ok=True)
-    frame = pd.DataFrame(rows)
-    frame.insert(0, 'vus', frame.pop('vus'))
-    frame.to_csv(RESULTS / 'steady_summary.csv', index=False, float_format='%.4f')
-    timelines, queries = [], []
-    for vus in frame.vus:
-        run_dir = session / f'steady-vu{vus:03d}'
-        timelines.append(pd.read_csv(run_dir / 'timeline.csv').assign(vus=vus))
-        queries.append(pd.read_csv(run_dir / 'queries.csv').assign(vus=vus))
-    pd.concat(timelines).to_csv(RESULTS / 'steady_timeseries.csv', index=False, float_format='%.4f')
-    pd.concat(queries).to_csv(RESULTS / 'steady_queries.csv', index=False)
+    pd.DataFrame(trials).to_csv(RESULTS / csv_name, index=False, float_format='%.4f')
+    return summary['passed']
 
 
-def peak(session):
+def ladder(session, seats):
+    cap = seats // 2
+    trials = []
+    for n in ladder_steps(cap):
+        run_trial(session, seats, '단계', 'ladder', n, trials, f'peak_ladder_seats{seats:04d}.csv')
+
+
+def ladder_steps(cap):
+    steps, n = [], min(PEAK_START, cap)
+    while n < cap:
+        steps.append(n)
+        n *= 2
+    return steps + [cap]
+
+
+def peak(session, seats):
+    cap = seats // 2
     trials = []
 
     def trial(search, n):
-        log(f'오픈 피크 탐색 {search}: 활성 회원 {n}명')
-        summary = measure(session / f'peak-s{search}-n{n:04d}', 'peak.js',
-                          {'ACTIVE_MEMBERS': n, 'SHOWTIME_ID': MAIN_SHOWTIME})
-        summary.update({'search': search, 'active_members': n})
-        summary['passed'] = bool(summary['seats_p95_ms'] <= PEAK_P95_TARGET and summary['hold_p95_ms'] <= PEAK_P95_TARGET
-                                 and summary['system_errors'] == 0 and summary['integrity_ok'])
-        log(f"  조회 p95 {summary['seats_p95_ms']:.0f}ms, 선점 p95 {summary['hold_p95_ms']:.0f}ms, "
-            f"오류 {summary['system_errors']}, 정합성 {summary['integrity_ok']} → {'통과' if summary['passed'] else '실패'}")
-        trials.append(summary)
-        pd.DataFrame(trials).to_csv(RESULTS / 'peak_trials.csv', index=False, float_format='%.4f')
-        return summary['passed']
+        return run_trial(session, seats, f'탐색 {search}', f's{search}', n, trials,
+                         f'peak_trials_seats{seats:04d}.csv', search=search)
 
     def find_n_max(search, low, high):
         passed, failed = 0, None
         if trial(search, low):
-            passed, n = low, high or low * 2
-            while failed is None and n <= PEAK_CAP:
+            passed, n = low, min(high or low * 2, cap)
+            while failed is None and passed < cap:
                 if trial(search, n):
-                    passed, n = n, n * 2
+                    passed, n = n, min(n * 2, cap)
                 else:
                     failed = n
             if failed is None:
@@ -414,16 +427,20 @@ def peak(session):
         return passed, True
 
     RESULTS.mkdir(parents=True, exist_ok=True)
-    first, bounded = find_n_max(1, PEAK_START, None)
+    first, bounded = find_n_max(1, min(PEAK_START, cap), None)
     results = [{'search': 1, 'n_max': first, 'bounded': bounded}]
     for search in range(2, PEAK_SEARCHES + 1):
-        n_max, bounded = find_n_max(search, max(PEAK_RESOLUTION, round(first * 0.8)), round(first * 1.2))
+        n_max, bounded = find_n_max(search, max(PEAK_RESOLUTION, round(first * 0.8)), min(cap, round(first * 1.2)))
         results.append({'search': search, 'n_max': n_max, 'bounded': bounded})
     values = [r['n_max'] for r in results]
     spread = (max(values) - min(values)) / min(values) if min(values) else float('nan')
-    report = {'searches': results, 'spread': spread, 'admission': int(min(values) * (1 - spread)) if min(values) else 0}
-    (RESULTS / 'peak_result.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
-    log(f'N_max {values}, 편차 {spread:.1%}, 입장 인원 {report["admission"]}')
+    admit_all = not any(r['bounded'] for r in results)
+    admission = cap if admit_all else (int(min(values) * (1 - spread)) if min(values) else 0)
+    report = {'seats': seats, 'cap': cap, 'searches': results, 'spread': spread,
+              'admit_all': admit_all, 'admission': admission}
+    (RESULTS / f'peak_result_seats{seats:04d}.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    verdict = f'상한 {cap}명까지 모두 통과 → 모두 들여보내도 된다' if admit_all else f'입장 인원 {admission}'
+    log(f'{seats}석: N_max {values}, 편차 {spread:.1%}, {verdict}')
 
 
 def keep_awake():
@@ -436,7 +453,8 @@ def keep_awake():
 def main():
     keep_awake()
     parser = argparse.ArgumentParser(description='TicketFlow 부하 테스트를 실행하고 결과를 docs/performance/에 저장한다')
-    parser.add_argument('scenario', choices=['steady', 'peak', 'all'])
+    parser.add_argument('scenario', choices=['peak', 'ladder'])
+    parser.add_argument('--seats', type=int, nargs='+', choices=SEAT_COUNTS, default=SEAT_COUNTS)
     parser.add_argument('--skip-build', action='store_true')
     args = parser.parse_args()
 
@@ -444,10 +462,8 @@ def main():
     session.mkdir(parents=True, exist_ok=True)
     if not args.skip_build:
         build()
-    if args.scenario in ('steady', 'all'):
-        steady(session)
-    if args.scenario in ('peak', 'all'):
-        peak(session)
+    for seats in args.seats:
+        (ladder if args.scenario == 'ladder' else peak)(session, seats)
     sh(COMPOSE + ['down', '-v'], cwd=ROOT)
     log(f'완료: 원본 {session}, 집계 {RESULTS}')
 
