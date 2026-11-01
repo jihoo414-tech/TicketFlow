@@ -41,7 +41,7 @@
 - **백엔드**: Java 21, Spring Boot 4, Spring Data JPA, MySQL 8.4, Gradle(Groovy)
 - **프론트엔드**: React 19, Vite, TypeScript, Tailwind CSS — 빌드 결과물을 Spring이 서빙한다
 - **테스트**: JUnit 5, Testcontainers(MySQL). H2와 Mock은 쓰지 않는다.
-- **부하 테스트**: k6
+- **부하 테스트**: k6, 실행·집계·그래프는 Python(`perf/run.py`, `perf/plot.py`)
 
 ## 실행하기
 
@@ -126,7 +126,7 @@ Testcontainers가 MySQL 컨테이너를 띄우므로 Docker가 켜져 있어야 
 | GET | `/api/members/me` | 현재 회원 | ✓ |
 | GET | `/api/performances` | 공연 목록 | |
 | GET | `/api/performances/{performanceId}/showtimes` | 공연의 회차 목록 | |
-| GET | `/api/showtimes/{showtimeId}/seats` | 회차의 좌석 상태 | |
+| GET | `/api/showtimes/{showtimeId}/seats` | 회차의 좌석 상태 (회차별로 1초 동안 같은 응답을 공유한다) | |
 | POST | `/api/showtimes/{showtimeId}/holds` | 선점 (`{"seatIds": [1, 2]}`) | ✓ |
 | POST | `/api/holds/{holdId}/cancellation` | 선점 취소 | ✓ |
 | POST | `/api/holds/{holdId}/payment` | 결제 → 예매 | ✓ |
@@ -147,17 +147,33 @@ src/main/java/com/ticketflow
 │   └── booking       선점·결제·예매, 좌석 점유 락
 └── global            설정, 예외 처리, 로컬 초기 데이터
 frontend/             React + Vite 화면
-perf/                 k6 부하 테스트 스크립트와 측정 기록
+perf/                 부하 테스트(k6 시나리오, 실행·그래프 스크립트, 시드)
 docs/                 불변식, 동시성 케이스, ADR
 ```
 
 ## 성능 측정
 
-`perf/`에 좌석 조회 부하 테스트(k6)와 측정 기록이 있다. 6,000석 회차에 만료된 선점 이력이 쌓일 때의 조회 지연을 보고, 점유 이력을 DB에서 거르고([ADR 0013](docs/adr/0013-filter-occupied-seats-in-database.md)) 복합 인덱스를 추가했다([ADR 0014](docs/adr/0014-index-occupied-seat-lookup.md)). 실험 데이터는 `perf` 프로파일로 별도 DB에서 다룬다(시작할 때 스키마를 초기화하지 않음).
+서버와 DB를 확장하지 않고(EC2 t3.micro, RDS db.t4g.micro 사양), 품질 기준을 지키며 동시에 받을 수 있는 **활성 회원** 수를 잰다. 대상 공연장은 회차당 **최대 1,000석**이다([ADR 0021](docs/adr/0021-target-venue-up-to-1000-seats.md)).
+
+- **품질 기준**: 예매 오픈 피크에서 좌석 조회·선점 p95 500ms 이하, 시스템 오류 0건([ADR 0017](docs/adr/0017-performance-quality-criteria.md))
+- **환경**: 자원을 제한한 로컬 컨테이너(앱·DB 각 2 vCPU)에서 반복하고, AWS에서 최종 확인한다([ADR 0016](docs/adr/0016-load-test-on-limited-local-containers.md))
+- **시나리오**: N명이 동시에 들어와 좌석을 조회하고, 0.5~1초 뒤 같은 열의 붙은 2석을 선점한다. 409면 다시 조회해 고른다
+
+지금까지 한 개선과 결과는 [`docs/performance/seat-count-report.md`](docs/performance/seat-count-report.md)에 있다.
+
+| 단계 | 내용 | 500석 160명 |
+|---|---|---|
+| 개선 전 | | 조회 p95 1,446ms, 실패 |
+| 1초 캐시 | 좌석 조회 응답을 회차별로 1초 공유([ADR 0020](docs/adr/0020-share-seat-status-with-short-local-cache.md)) | 조회 484ms, 선점 1,063ms, 실패 |
+| 선점 커넥션 | OSIV 끄기, 선점 API의 앞단 회원 확인 생략([ADR 0007](docs/adr/0007-member-id-argument-resolver.md)) | 조회 295ms, 선점 349ms, **통과** |
 
 ```bash
-k6 run -e SHOWTIME_ID=1 -e BASE_URL=http://localhost:8080 perf/seat-load-test.js
+python perf/run.py ladder --seats 250 500 750 1000   # 좌석 수마다 10, 20, 40 … 좌석/2명을 한 번씩
+python perf/run.py peak --seats 1000                 # N_max 탐색(10명 시작, 2명 간격, 3회)
+python perf/plot.py                                  # docs/performance/*.png
 ```
+
+실행할 때마다 `docker-compose.aws.yml`로 DB를 새로 만든다. 요구사항: Docker, k6, Python 3 + pandas + matplotlib, 저장소 루트의 `.env`.
 
 ## 문서
 
@@ -167,4 +183,5 @@ k6 run -e SHOWTIME_ID=1 -e BASE_URL=http://localhost:8080 perf/seat-load-test.js
 | [`docs/invariants.md`](docs/invariants.md) | 항상 참이어야 하는 규칙 |
 | [`docs/concurrency-cases.md`](docs/concurrency-cases.md) | 동시성 경쟁 상황과 해결 방식 검토 |
 | [`docs/adr/`](docs/adr/) | 설계 결정 기록 |
+| [`docs/performance/`](docs/performance/) | 부하 테스트 보고서와 측정 원본 |
 | GitHub 이슈 #1 | 요구사항 스펙과 하위 티켓 |
