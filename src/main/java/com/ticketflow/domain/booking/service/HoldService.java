@@ -28,7 +28,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,8 +43,6 @@ public class HoldService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
-
-        validateNoDuplicateSeats(seatIds);
 
         LockedOccupancy locked = seatOccupancyLock.acquireMemberAndSeats(memberId, seatIds);
 
@@ -106,13 +103,6 @@ public class HoldService {
     private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long showtimeId, LocalDateTime now) {
         return holdSeatRepository.findOccupyingByShowtimeId(showtimeId, HoldStatus.RESERVED, HoldStatus.HELD, now).stream()
                 .collect(Collectors.toMap(OccupiedSeat::seatId, OccupiedSeat::seatStatus));
-    }
-
-    //중복된 좌석으로 요청이 들어오는 지 확인하는데, 사용자의 의도와 다르게 중복된 요청으로 들어오는 경우가 있을수도 있어서 추후 검증 필요.
-    private void validateNoDuplicateSeats(List<Long> seatIds) {
-        if (Set.copyOf(seatIds).size() != seatIds.size()) {
-            throw new BusinessException(ErrorCode.DUPLICATE_SEAT);
-        }
     }
 
     private void validateOwner(Hold hold, Long memberId) {
