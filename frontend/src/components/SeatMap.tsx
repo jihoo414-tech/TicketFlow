@@ -4,11 +4,15 @@ import { formatPrice } from '../format';
 type Props = {
   seats: Seat[];
   selectedIds: Set<number>;
+  myHoldSeatIds: Set<number>;
   locked: boolean;
   onToggle: (seat: Seat) => void;
 };
 
-function seatClass(seat: Seat, selected: boolean): string {
+function seatClass(seat: Seat, selected: boolean, mine: boolean): string {
+  if (mine) {
+    return 'border-violet-600 bg-violet-100 text-violet-700 cursor-not-allowed';
+  }
   if (seat.status === 'RESERVED') {
     return 'border-gray-400 bg-gray-400 text-white cursor-not-allowed';
   }
@@ -21,7 +25,7 @@ function seatClass(seat: Seat, selected: boolean): string {
   return 'border-violet-400 bg-white text-violet-700 hover:bg-violet-50';
 }
 
-export default function SeatMap({ seats, selectedIds, locked, onToggle }: Props) {
+export default function SeatMap({ seats, selectedIds, myHoldSeatIds, locked, onToggle }: Props) {
   const rows = Map.groupBy(seats, seat => seat.row);
 
   return (
@@ -37,9 +41,9 @@ export default function SeatMap({ seats, selectedIds, locked, onToggle }: Props)
                   key={seat.id}
                   type="button"
                   title={`${seat.row}열 ${seat.number}번 · ${formatPrice(seat.price)}`}
-                  disabled={seat.status !== 'AVAILABLE' || locked}
+                  disabled={seat.status !== 'AVAILABLE' || locked || myHoldSeatIds.has(seat.id)}
                   onClick={() => onToggle(seat)}
-                  className={`h-9 w-9 rounded-md border text-xs font-medium transition disabled:cursor-not-allowed ${seatClass(seat, selectedIds.has(seat.id))}`}
+                  className={`h-9 w-9 rounded-md border text-xs font-medium transition disabled:cursor-not-allowed ${seatClass(seat, selectedIds.has(seat.id), myHoldSeatIds.has(seat.id))}`}
                 >
                   {seat.number}
                 </button>
@@ -51,6 +55,7 @@ export default function SeatMap({ seats, selectedIds, locked, onToggle }: Props)
       <div className="mt-6 flex justify-center gap-5 text-xs text-gray-600">
         <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-violet-400 bg-white" />선점 가능</span>
         <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded bg-violet-600" />선택한 좌석</span>
+        <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-violet-600 bg-violet-100" />내 선점</span>
         <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded bg-gray-200" />선점 불가</span>
         <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded bg-gray-400" />예매 완료</span>
       </div>
