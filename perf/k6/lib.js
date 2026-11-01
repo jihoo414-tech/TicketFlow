@@ -1,8 +1,8 @@
+import { sleep } from 'k6';
 import http from 'k6/http';
 import { Counter, Rate } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8081';
-const SEATS_PER_HOLD = 2;
 const MAX_HOLD_ATTEMPTS = 3;
 
 const systemErrors = new Counter('system_errors');
@@ -36,22 +36,29 @@ function errorCode(res) {
     }
 }
 
-export function lookupAvailableSeats(showtimeId, memberId) {
+export function lookupAdjacentPairs(showtimeId, memberId) {
     const res = http.get(`${BASE_URL}/api/showtimes/${showtimeId}/seats`, params(memberId, 'seats'));
     const ok = res.status === 200;
     record('seats', ok);
     if (!ok) {
         return null;
     }
-    return res.json().filter((seat) => seat.status === 'AVAILABLE').map((seat) => seat.id);
+    return adjacentPairs(res.json().filter((seat) => seat.status === 'AVAILABLE'));
 }
 
-function pickRandom(seatIds, count) {
-    const picked = new Set();
-    while (picked.size < count) {
-        picked.add(seatIds[Math.floor(Math.random() * seatIds.length)]);
-    }
-    return [...picked];
+function adjacentPairs(availableSeats) {
+    const byPosition = new Map(availableSeats.map((seat) => [`${seat.row}:${seat.number}`, seat.id]));
+    return availableSeats
+        .filter((seat) => byPosition.has(`${seat.row}:${seat.number + 1}`))
+        .map((seat) => [seat.id, byPosition.get(`${seat.row}:${seat.number + 1}`)]);
+}
+
+function pickRandom(pairs) {
+    return pairs[Math.floor(Math.random() * pairs.length)];
+}
+
+function choose() {
+    sleep(0.5 + Math.random() * 0.5);
 }
 
 function hold(showtimeId, memberId, seatIds) {
@@ -71,18 +78,19 @@ function hold(showtimeId, memberId, seatIds) {
     return 'error';
 }
 
-export function holdWithRetry(showtimeId, memberId, availableSeatIds) {
-    let available = availableSeatIds;
+export function holdWithRetry(showtimeId, memberId, availablePairs) {
+    let available = availablePairs;
     for (let attempt = 1; attempt <= MAX_HOLD_ATTEMPTS; attempt++) {
-        if (available === null || available.length < SEATS_PER_HOLD) {
+        if (available === null || available.length === 0) {
             return false;
         }
-        const result = hold(showtimeId, memberId, pickRandom(available, SEATS_PER_HOLD));
+        choose();
+        const result = hold(showtimeId, memberId, pickRandom(available));
         if (result !== 'conflict') {
             return result === 'held';
         }
         if (attempt < MAX_HOLD_ATTEMPTS) {
-            available = lookupAvailableSeats(showtimeId, memberId);
+            available = lookupAdjacentPairs(showtimeId, memberId);
         }
     }
     return false;

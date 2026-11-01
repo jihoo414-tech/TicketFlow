@@ -1,6 +1,5 @@
-import { sleep } from 'k6';
 import exec from 'k6/execution';
-import { holdWithRetry, lookupAvailableSeats, scenarioSuccess } from './lib.js';
+import { holdWithRetry, lookupAdjacentPairs, scenarioSuccess } from './lib.js';
 
 const SHOWTIME_ID = Number(__ENV.SHOWTIME_ID || 1);
 const ACTIVE_MEMBERS = Number(__ENV.ACTIVE_MEMBERS || 50);
@@ -18,11 +17,10 @@ export const options = {
 
 export default function () {
     const memberId = exec.vu.idInTest;
-    const available = lookupAvailableSeats(SHOWTIME_ID, memberId);
+    const available = lookupAdjacentPairs(SHOWTIME_ID, memberId);
     if (available === null) {
         scenarioSuccess.add(false);
         return;
     }
-    sleep(Math.random() * 0.5);
     scenarioSuccess.add(holdWithRetry(SHOWTIME_ID, memberId, available));
 }
