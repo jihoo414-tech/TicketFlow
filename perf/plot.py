@@ -85,8 +85,47 @@ def plot_peak(trials, result):
     save(fig, f'peak-search-seats{seats:04d}.png')
 
 
+LADDER_CONDITION = ('측정 조건: 로컬 Docker · 앱 2 vCPU/850 MiB · MySQL 2 vCPU/1 GiB · HikariCP 10 · 열당 25석 · '
+                    '활성 회원 N명 동시 출발 → 조회 → 0.5~1초 → 붙은 2석 선점(409면 재조회 후 0.5~1초, 최대 3회) · '
+                    '단계마다 한 번씩, 실행마다 DB 초기화와 워밍업')
+LADDER_VARIANTS = (('', '기준선', REFERENCE, '--'), ('_projection', '프로젝션', SERIES[1], ':'), ('_cache', '1초 캐시', SERIES[0], '-'))
+
+
+def plot_ladders():
+    fig, axes = figure('좌석 수별 단계 측정: 기준선 · 프로젝션 · 1초 캐시', LADDER_CONDITION, ncols=4, nrows=2,
+                       size=(18, 8.5), sharex='col', sharey='row')
+    for col, seats in enumerate((250, 500, 750, 1000)):
+        for row, (column, label) in enumerate((('seats_p95_ms', '좌석 조회 p95 (ms)'), ('hold_p95_ms', '선점 p95 (ms)'))):
+            ax = axes[row][col]
+            for suffix, name, color, style in LADDER_VARIANTS:
+                path = RESULTS / f'peak_ladder_seats{seats:04d}{suffix}.csv'
+                if not path.exists():
+                    continue
+                frame = pd.read_csv(path)
+                ax.plot(frame.active_members, frame[column], color=color, linestyle=style, linewidth=2, label=name)
+                failed = frame[~frame.passed]
+                ax.scatter(failed.active_members, failed[column], color=color, marker='X', s=50, zorder=3)
+            reference_line(ax, 500, '기준 500ms')
+            ax.set_xscale('log', base=2)
+            ticks = [n for n in (10, 20, 40, 80, 160, 320) if n * 1.3 <= seats // 2] + [seats // 2]
+            ax.set_xticks(ticks, [str(t) for t in ticks])
+            ax.minorticks_off()
+            ax.set_ylim(0, 2000)
+            if row == 0:
+                ax.set_title(f'{seats:,}석 (상한 {seats // 2}명)', loc='left')
+            if row == 1:
+                ax.set_xlabel('활성 회원 (명, 로그 축)')
+            if col == 0:
+                ax.set_ylabel(label)
+    axes[0][0].legend(loc='upper left')
+    axes[0][0].scatter([], [], color=TEXT_SECONDARY, marker='X', label='실패한 단계')
+    axes[0][0].legend(loc='upper left')
+    save(fig, 'ladder-comparison.png')
+
+
 def main():
     setup_font()
+    plot_ladders()
     for result_path in sorted(RESULTS.glob('peak_result_seats*.json')):
         trials_path = result_path.with_name(result_path.name.replace('peak_result', 'peak_trials').replace('.json', '.csv'))
         plot_peak(pd.read_csv(trials_path), json.loads(result_path.read_text(encoding='utf-8')))
