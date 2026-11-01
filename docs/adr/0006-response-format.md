@@ -1,6 +1,6 @@
 # 성공 응답은 DTO 그대로, 실패 응답은 ProblemDetail + code
 
-성공하면 HTTP 상태 코드와 함께 DTO를 감싸지 않고 그대로 응답한다. 실패하면 RFC 9457 `ProblemDetail`에 `code`(`ErrorCode` 이름)를 추가해 응답한다. 화면은 HTTP 상태로 성공과 실패를 나누고, 실패면 `code`와 `detail`을 본다. 스프링이 내는 오류도 `spring.mvc.problemdetails.enabled`로 같은 모양이 되지만, `code`는 없다.
+성공하면 HTTP 상태 코드와 함께 DTO를 감싸지 않고 그대로 응답한다. 실패하면 RFC 9457 `ProblemDetail`에 `code`(`ErrorCode` 이름)를 추가해 응답한다. 화면은 HTTP 상태로 성공과 실패를 나누고, 실패면 `code`와 `detail`을 본다. 스프링이 내는 오류도 `spring.mvc.problemdetails.enabled`로 같은 모양이 되지만, `code`는 없다. 예외로 요청 본문 검증(`@Valid`) 실패는 `GlobalExceptionHandler`가 위반한 제약을 `ErrorCode`로 바꿔 `code`를 넣는다(예: 선점 요청의 빈 목록 → `INVALID_SEAT_COUNT`, 중복 → `DUPLICATE_SEAT`, null 좌석 → `INVALID_SEAT_ID`). 화면이 같은 오류를 같은 `code`로 받게 하기 위해서다.
 
 **선택 이유 (사용자)**: 대화에서 AI 추천에 동의했다. 직접 쓴 이유로 바꿀 것.
 

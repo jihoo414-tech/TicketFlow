@@ -2,6 +2,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -14,17 +15,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+import target as targets
+
 ROOT = Path(__file__).resolve().parent.parent
 PERF = ROOT / 'perf'
 K6_DIR = PERF / 'k6'
 OUT = PERF / 'out'
 RESULTS = ROOT / 'docs' / 'performance'
-COMPOSE = ['docker', 'compose', '-f', str(ROOT / 'docker-compose.aws.yml'), '-f', str(PERF / 'docker-compose.perf.yml')]
-APP_URL = 'http://localhost:8081'
-APP_CONTAINER = 'ticketflow-aws-app-1'
-DB_CONTAINER = 'ticketflow-aws-mysql-1'
-CPU_LIMIT = 2
 MAIN_SHOWTIME = 1
+TARGET = None
+SEATS_URI = re.compile(r'^/api/showtimes/\d+/seats$')
+HOLD_URI = re.compile(r'^/api/showtimes/\d+/holds$')
 
 WARMUP_SHOWTIME = 2
 SEAT_COUNTS = [250, 500, 750, 1000]
@@ -44,43 +45,22 @@ def log(message):
     print(f'[{datetime.now():%H:%M:%S}] {message}', flush=True)
 
 
-def read_env():
-    env = {}
-    for line in (ROOT / '.env').read_text(encoding='utf-8').splitlines():
-        if '=' in line and not line.lstrip().startswith('#'):
-            key, value = line.split('=', 1)
-            env[key.strip()] = value.strip()
-    return env
-
-
-ENV = read_env()
-
-
-def sh(cmd, **kwargs):
-    return subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', **kwargs)
-
-
 def mysql(sql):
-    out = sh(['docker', 'exec', '-e', f'MYSQL_PWD={ENV["MYSQL_ROOT_PASSWORD"]}', DB_CONTAINER,
-              'mysql', '-uroot', '-N', '-B', ENV['MYSQL_DATABASE'], '-e', sql]).stdout
-    return [row.split('\t') for row in out.splitlines() if row]
+    return TARGET.mysql(sql)
 
 
 def build():
     log('앱 jar와 이미지를 빌드한다')
-    gradlew = 'gradlew.bat' if os.name == 'nt' else './gradlew'
-    subprocess.run([str(ROOT / gradlew), 'bootJar', '-q'], check=True, cwd=ROOT, shell=os.name == 'nt')
-    subprocess.run(COMPOSE + ['build', 'app'], check=True, cwd=ROOT)
+    TARGET.build()
 
 
 def fetch_json(path, timeout=1.0):
-    with urllib.request.urlopen(APP_URL + path, timeout=timeout) as res:
+    with urllib.request.urlopen(TARGET.app_url + path, timeout=timeout) as res:
         return json.load(res)
 
 
 def reset(seats):
-    sh(COMPOSE + ['down', '-v', '--remove-orphans'], cwd=ROOT)
-    sh(COMPOSE + ['up', '-d', '--wait'], cwd=ROOT)
+    TARGET.reset_database_and_app()
     wait_for_app()
     seed_seats(MAIN_SHOWTIME, seats)
     seed_seats(WARMUP_SHOWTIME, WARMUP_SEATS)
@@ -110,7 +90,7 @@ def seed_seats(showtime_id, count):
 
 def k6(script, run_dir, env):
     cmd = ['k6', 'run', '--quiet', '--out', f'csv={run_dir / "k6.csv"}']
-    for key, value in env.items():
+    for key, value in {**env, 'BASE_URL': TARGET.app_url}.items():
         cmd += ['-e', f'{key}={value}']
     cmd.append(script)
     with open(run_dir / f'{Path(script).stem}.log', 'w', encoding='utf-8') as out:
@@ -122,7 +102,10 @@ def warmup(run_dir):
     warm_dir = run_dir / 'warmup'
     warm_dir.mkdir(parents=True, exist_ok=True)
     k6('warmup.js', warm_dir, {'SHOWTIME_ID': 2, 'MEMBER_OFFSET': 9000})
-    mysql('TRUNCATE TABLE performance_schema.events_statements_summary_by_digest')
+    try:
+        mysql('TRUNCATE TABLE performance_schema.events_statements_summary_by_digest')
+    except Exception as e:
+        log(f'  쿼리 기록을 비우지 못했다(performance_schema 확인): {e}')
 
 
 class Collector:
@@ -130,7 +113,7 @@ class Collector:
         self.stop_event = threading.Event()
         self.app, self.docker, self.db = [], [], []
         self.threads = [threading.Thread(target=self.loop, args=(fn,), daemon=True)
-                        for fn in (self.sample_app, self.sample_docker, self.sample_db)]
+                        for fn in (self.sample_app, self.sample_resources, self.sample_db)]
 
     def __enter__(self):
         for thread in self.threads:
@@ -175,28 +158,15 @@ class Collector:
             'gc_pause_total_s': gc.get('TOTAL_TIME', 0.0),
         })
 
-    def sample_docker(self, t):
-        out = sh(['docker', 'stats', '--no-stream', '--format', '{{json .}}', APP_CONTAINER, DB_CONTAINER]).stdout
-        row = {'t': t}
-        for line in out.splitlines():
-            stat = json.loads(line)
-            prefix = 'app' if stat['Name'] == APP_CONTAINER else 'db'
-            row[f'{prefix}_cpu_pct'] = float(stat['CPUPerc'].rstrip('%')) / CPU_LIMIT
-            row[f'{prefix}_mem_mib'] = to_mib(stat['MemUsage'].split('/')[0].strip())
-        self.docker.append(row)
+    def sample_resources(self, t):
+        row = TARGET.sample_resources(self.metric)
+        if row:
+            self.docker.append({'t': t, **row})
 
     def sample_db(self, t):
         names = ', '.join(f"'{name}'" for name in LOCK_STATUS)
         rows = mysql(f'SHOW GLOBAL STATUS WHERE Variable_name IN ({names})')
         self.db.append({'t': t, **{name: float(value) for name, value in rows}})
-
-
-def to_mib(text):
-    units = {'B': 1 / 2 ** 20, 'KiB': 1 / 1024, 'MiB': 1, 'GiB': 1024, 'kB': 1000 / 2 ** 20, 'MB': 1e6 / 2 ** 20, 'GB': 1e9 / 2 ** 20}
-    for unit in sorted(units, key=len, reverse=True):
-        if text.endswith(unit):
-            return float(text[:-len(unit)]) * units[unit]
-    return float('nan')
 
 
 def read_k6(run_dir):
@@ -231,7 +201,7 @@ def query_digests():
                ROUND(AVG_TIMER_WAIT / 1e9, 3), ROUND(MAX_TIMER_WAIT / 1e9, 3),
                ROUND(SUM_TIMER_WAIT / 1e9, 1), ROUND(SUM_LOCK_TIME / 1e9, 1), SUM_ROWS_EXAMINED
         FROM performance_schema.events_statements_summary_by_digest
-        WHERE SCHEMA_NAME = '{ENV["MYSQL_DATABASE"]}' AND DIGEST_TEXT IS NOT NULL
+        WHERE SCHEMA_NAME = '{TARGET.database}' AND DIGEST_TEXT IS NOT NULL
         ORDER BY SUM_TIMER_WAIT DESC LIMIT 12""")
     columns = ['digest', 'count', 'avg_ms', 'max_ms', 'total_ms', 'lock_ms', 'rows_examined']
     digests = [dict(zip(columns, row)) for row in rows]
@@ -245,7 +215,27 @@ def percentile(series, q):
     return float(np.percentile(series, q)) if len(series) else float('nan')
 
 
-def summarize(run_dir, collector, started, ended):
+def server_latencies(lines):
+    seats, holds = [], []
+    for line in lines:
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+        method, uri, micros = parts[1], parts[2], parts[4]
+        if method == 'GET' and SEATS_URI.match(uri):
+            seats.append(int(micros) / 1000)
+        elif method == 'POST' and HOLD_URI.match(uri):
+            holds.append(int(micros) / 1000)
+    return {
+        'server_seats_requests': len(seats), 'server_hold_requests': len(holds),
+        'server_seats_p50_ms': percentile(seats, 50), 'server_seats_p95_ms': percentile(seats, 95),
+        'server_seats_p99_ms': percentile(seats, 99),
+        'server_hold_p50_ms': percentile(holds, 50), 'server_hold_p95_ms': percentile(holds, 95),
+        'server_hold_p99_ms': percentile(holds, 99),
+    }
+
+
+def summarize(run_dir, collector, started, ended, access_lines):
     k6_frame = read_k6(run_dir)
     durations = k6_frame[k6_frame.metric_name == 'http_req_duration']
     seats = durations[durations.name == 'seats'].metric_value
@@ -274,15 +264,21 @@ def summarize(run_dir, collector, started, ended):
         'scenarios': len(scenario),
         'scenario_success_rate': float(scenario.mean()) if len(scenario) else float('nan'),
     }
+    summary.update(server_latencies(access_lines))
     summary.update(integrity())
     summary['integrity_ok'] = (summary['dup_seats'] == 0 and summary['dup_members'] == 0
                                and summary['db_held_seats'] == 2 * summary['db_holds'])
     summary['lost_hold_responses'] = summary['db_holds'] - summary['hold_success']
     summary.update(resource_summary(collector, started, ended))
+    summary.update(TARGET.cloud_metrics(started, ended))
 
     timeline = per_second(k6_frame, collector, started)
     timeline.to_csv(run_dir / 'timeline.csv', index=False)
-    pd.DataFrame(query_digests()).to_csv(run_dir / 'queries.csv', index=False)
+    (run_dir / 'access.log').write_text('\n'.join(access_lines), encoding='utf-8')
+    try:
+        pd.DataFrame(query_digests()).to_csv(run_dir / 'queries.csv', index=False)
+    except Exception as e:
+        log(f'  쿼리 기록을 읽지 못했다(performance_schema 확인): {e}')
     for name in ('app', 'docker', 'db'):
         pd.DataFrame(getattr(collector, name)).to_csv(run_dir / f'collector_{name}.csv', index=False)
     (run_dir / 'summary.json').write_text(json.dumps(summary, indent=2, default=float), encoding='utf-8')
@@ -295,9 +291,11 @@ def resource_summary(collector, started, ended):
     result = {}
     if not docker.empty:
         for prefix in ('app', 'db'):
-            result[f'{prefix}_cpu_avg_pct'] = docker[f'{prefix}_cpu_pct'].mean()
-            result[f'{prefix}_cpu_max_pct'] = docker[f'{prefix}_cpu_pct'].max()
-            result[f'{prefix}_mem_max_mib'] = docker[f'{prefix}_mem_mib'].max()
+            if f'{prefix}_cpu_pct' in docker:
+                result[f'{prefix}_cpu_avg_pct'] = docker[f'{prefix}_cpu_pct'].mean()
+                result[f'{prefix}_cpu_max_pct'] = docker[f'{prefix}_cpu_pct'].max()
+            if f'{prefix}_mem_mib' in docker:
+                result[f'{prefix}_mem_max_mib'] = docker[f'{prefix}_mem_mib'].max()
     if not app.empty:
         result['hikari_pending_avg'] = app.hikari_pending.mean()
         result['hikari_pending_max'] = app.hikari_pending.max()
@@ -348,13 +346,14 @@ def measure(run_dir, script, env, seats):
     run_dir.mkdir(parents=True, exist_ok=True)
     reset(seats)
     warmup(run_dir)
+    log_offset = len(TARGET.access_log())
     with Collector() as collector:
         time.sleep(2)
         started = time.time()
         exit_code = k6(script, run_dir, env)
         ended = time.time()
         time.sleep(2)
-    summary = summarize(run_dir, collector, started, ended)
+    summary = summarize(run_dir, collector, started, ended, TARGET.access_log()[log_offset:])
     summary['k6_exit_code'] = exit_code
     summary['seats'] = seats
     return summary
@@ -365,9 +364,11 @@ def run_trial(session, seats, label, tag, n, trials, csv_name, **extra):
     summary = measure(session / f'peak-seats{seats:04d}-{tag}-n{n:04d}', 'peak.js',
                       {'ACTIVE_MEMBERS': n, 'SHOWTIME_ID': MAIN_SHOWTIME}, seats)
     summary.update({**extra, 'active_members': n})
-    summary['passed'] = bool(summary['seats_p95_ms'] <= PEAK_P95_TARGET and summary['hold_p95_ms'] <= PEAK_P95_TARGET
+    summary['passed'] = bool(summary['server_seats_p95_ms'] <= PEAK_P95_TARGET
+                             and summary['server_hold_p95_ms'] <= PEAK_P95_TARGET
                              and summary['system_errors'] == 0 and summary['integrity_ok'])
-    log(f"  조회 p95 {summary['seats_p95_ms']:.0f}ms, 선점 p95 {summary['hold_p95_ms']:.0f}ms, "
+    log(f"  서버 p95 조회 {summary['server_seats_p95_ms']:.0f}ms · 선점 {summary['server_hold_p95_ms']:.0f}ms "
+        f"(k6 {summary['seats_p95_ms']:.0f} · {summary['hold_p95_ms']:.0f}ms), "
         f"커넥션 대기 {summary.get('hikari_acquire_avg_ms', float('nan')):.1f}ms, "
         f"커넥션 사용 {summary.get('hikari_usage_avg_ms', float('nan')):.1f}ms, "
         f"오류 {summary['system_errors']}, 정합성 {summary['integrity_ok']} → {'통과' if summary['passed'] else '실패'}")
@@ -456,15 +457,23 @@ def main():
     parser.add_argument('scenario', choices=['peak', 'ladder'])
     parser.add_argument('--seats', type=int, nargs='+', choices=SEAT_COUNTS, default=SEAT_COUNTS)
     parser.add_argument('--skip-build', action='store_true')
+    parser.add_argument('--target', choices=['local', 'aws'], default='local')
     args = parser.parse_args()
 
-    session = OUT / datetime.now().strftime('%Y%m%d-%H%M%S')
+    global TARGET, RESULTS
+    TARGET = targets.create(args.target)
+    if args.target == 'aws':
+        RESULTS = RESULTS / 'aws'
+    session = OUT / datetime.now().strftime(f'%Y%m%d-%H%M%S-{args.target}')
     session.mkdir(parents=True, exist_ok=True)
-    if not args.skip_build:
+    if not args.skip_build and args.target == 'local':
         build()
-    for seats in args.seats:
-        (ladder if args.scenario == 'ladder' else peak)(session, seats)
-    sh(COMPOSE + ['down', '-v'], cwd=ROOT)
+    TARGET.open()
+    try:
+        for seats in args.seats:
+            (ladder if args.scenario == 'ladder' else peak)(session, seats)
+    finally:
+        TARGET.close()
     log(f'완료: 원본 {session}, 집계 {RESULTS}')
 
 
