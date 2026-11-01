@@ -12,8 +12,6 @@ Security를 도입하기 전까지 회원은 `X-Member-Id` 헤더로 식별한�
 | 헤더 값이 숫자가 아니다 | `MEMBER_ID_INVALID` |
 | 그 id의 회원이 없다 | `MEMBER_NOT_FOUND` |
 
-**선택 이유 (사용자)**: AI 추천에 동의했다. 헤더를 읽고 검사하는 코드가 한 곳에만 있어서 Security로 바꿀 때 그곳만 고치면 된다. "요청한 회원이 누구인가"는 회원 규칙이므로 member 패키지에 두고, 회원 존재 확인은 `MemberService`를 거친다. 새 폴더가 필요 없다. 직접 쓴 이유로 바꿀 것.
-
 ## Considered Options
 
 - **인터셉터**: 모든 요청 앞에서 검사하는 모양이 직관적이다. 하지만 검사(인터셉터)와 꺼내 쓰기(`@RequestAttribute`)가 두 곳으로 나뉘고, 적용할 URL 목록을 따로 관리해야 한다.
