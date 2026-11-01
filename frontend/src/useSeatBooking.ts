@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, type Hold, type Reservation, type Seat } from './api';
 import { parseLocalDateTime } from './format';
+import { loadStoredHold, removeStoredHold, storeHold } from './holdStorage';
+import { useMember } from './member';
 import { toApiError } from './useLoad';
 
 export const MAX_SEATS = 4;
@@ -16,6 +18,7 @@ function useNow(intervalMs: number) {
 
 export function useSeatBooking(showtimeId: string) {
   const now = useNow(1000);
+  const { memberId } = useMember();
 
   const [seats, setSeats] = useState<Seat[] | null>(null);
   const [seatError, setSeatError] = useState<string | null>(null);
@@ -44,12 +47,20 @@ export function useSeatBooking(showtimeId: string) {
     reloadSeats();
   }, [reloadSeats]);
 
+  useEffect(() => {
+    setHold(loadStoredHold(memberId, showtimeId, Date.now()));
+    setReservation(null);
+  }, [memberId, showtimeId]);
+
   const holdExpired = hold !== null && reservation === null && parseLocalDateTime(hold.expiresAt).getTime() <= now;
   useEffect(() => {
     if (holdExpired) {
+      removeStoredHold(memberId, showtimeId);
       reloadSeats();
     }
-  }, [holdExpired, reloadSeats]);
+  }, [holdExpired, memberId, showtimeId, reloadSeats]);
+
+  const myHoldSeatIds = new Set(hold && !holdExpired ? hold.seats.map(seat => seat.id) : []);
 
   const toggleSeat = (seat: Seat) => {
     const next = new Set(selectedIds);
@@ -69,6 +80,7 @@ export function useSeatBooking(showtimeId: string) {
     try {
       const created = await api.hold(showtimeId, [...selectedIds]);
       setHold(created);
+      storeHold(memberId, showtimeId, created);
       setSelectedIds(new Set());
       await reloadSeats();
     } catch (error) {
@@ -89,6 +101,7 @@ export function useSeatBooking(showtimeId: string) {
     setPaying(true);
     try {
       setReservation(await api.pay(hold.id));
+      removeStoredHold(memberId, showtimeId);
       await reloadSeats();
     } catch (error) {
       const apiError = toApiError(error);
@@ -107,6 +120,7 @@ export function useSeatBooking(showtimeId: string) {
     try {
       await api.cancelHold(hold.id);
       setHold(null);
+      removeStoredHold(memberId, showtimeId);
       setNotice('선점을 취소했습니다.');
       await reloadSeats();
     } catch (error) {
@@ -121,10 +135,11 @@ export function useSeatBooking(showtimeId: string) {
   };
 
   const resetHold = () => {
+    removeStoredHold(memberId, showtimeId);
     setHold(null);
     setReservation(null);
   };
 
-  return { now, holdExpired, seats, seatError, selectedIds, hold, holding, reservation, paying, cancelling, notice,
+  return { now, holdExpired, seats, seatError, selectedIds, myHoldSeatIds, hold, holding, reservation, paying, cancelling, notice,
     dismissNotice, reloadSeats, toggleSeat, submitHold, submitPay, cancelHold, resetHold };
 }

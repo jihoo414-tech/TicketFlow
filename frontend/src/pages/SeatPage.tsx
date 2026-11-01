@@ -22,7 +22,7 @@ function sortSeats(seats: Seat[]): Seat[] {
 export default function SeatPage() {
   const { performanceId = '', showtimeId = '' } = useParams();
   const info = useLoad(() => loadShowtime(performanceId, showtimeId), [performanceId, showtimeId]);
-  const { now, holdExpired, seats, seatError, selectedIds, hold, holding, reservation, paying, cancelling, notice,
+  const { now, holdExpired, seats, seatError, selectedIds, myHoldSeatIds, hold, holding, reservation, paying, cancelling, notice,
     dismissNotice, reloadSeats, toggleSeat, submitHold, submitPay, cancelHold, resetHold } = useSeatBooking(showtimeId);
 
   if (info.status === 'loading') {
@@ -61,7 +61,7 @@ export default function SeatPage() {
       {!seatError && seats === null && <StatusMessage>불러오는 중...</StatusMessage>}
       {!seatError && seats?.length === 0 && <StatusMessage>등록된 좌석이 없습니다.</StatusMessage>}
       {!seatError && seats && seats.length > 0 && (
-        <SeatMap seats={seats} selectedIds={selectedIds} locked={hold !== null} onToggle={toggleSeat} />
+        <SeatMap seats={seats} selectedIds={selectedIds} myHoldSeatIds={myHoldSeatIds} locked={hold !== null} onToggle={toggleSeat} />
       )}
 
       <HoldPanel
