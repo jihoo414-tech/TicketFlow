@@ -18,6 +18,7 @@ export type MyReservation = {
   status: MyReservationStatus;
 };
 export type ReservationCancellation = { id: number; status: 'RESERVATION_CANCELLED' };
+export type RemainingSeatCount = { remainingSeatCount: number };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -95,6 +96,8 @@ export const api = {
     }),
   cancelHold: (holdId: number) => write<HoldCancellation>(`/api/holds/${holdId}/cancellation`, { method: 'POST' }),
   pay: (holdId: number) => write<Reservation>(`/api/holds/${holdId}/payment`, { method: 'POST' }),
+  remainingSeatCount: (showtimeId: string) =>
+    read<RemainingSeatCount>(`/api/members/me/showtimes/${showtimeId}/remaining-seat-count`),
   myReservations: () => read<MyReservation[]>('/api/members/me/reservations'),
   cancelReservation: (reservationId: number) =>
     write<ReservationCancellation>(`/api/reservations/${reservationId}/cancellation`, { method: 'POST' }),

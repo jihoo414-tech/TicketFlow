@@ -11,6 +11,7 @@ type Props = {
   reservation: Reservation | null;
   now: number;
   selectedSeats: Seat[];
+  seatLimit: number;
   bookingOpen: boolean;
   bookingOpenAt: string;
   holding: boolean;
@@ -31,7 +32,7 @@ function PanelFrame({ children }: { children: ReactNode }) {
 }
 
 export default function HoldPanel({
-  hold, holdExpired, reservation, now, selectedSeats, bookingOpen, bookingOpenAt, holding, paying, cancelling, onHold, onPay, onCancel, onReset,
+  hold, holdExpired, reservation, now, selectedSeats, seatLimit, bookingOpen, bookingOpenAt, holding, paying, cancelling, onHold, onPay, onCancel, onReset,
 }: Props) {
   if (hold) {
     const remainingMs = parseLocalDateTime(hold.expiresAt).getTime() - now;
@@ -103,12 +104,18 @@ export default function HoldPanel({
     <PanelFrame>
       <div>
         {selectedSeats.length === 0 ? (
-          <p className="text-gray-500">좌석을 선택해 주세요. (최대 {MAX_SEATS}석)</p>
+          <p className="text-gray-500">
+            {seatLimit === 0
+              ? `이 회차는 이미 ${MAX_SEATS}석을 예매했습니다.`
+              : seatLimit < MAX_SEATS
+                ? `좌석을 선택해 주세요. (이미 예매한 좌석이 있어 최대 ${seatLimit}석)`
+                : `좌석을 선택해 주세요. (최대 ${MAX_SEATS}석)`}
+          </p>
         ) : (
           <>
             <p className="font-semibold text-gray-900">
               {selectedSeats.map(formatSeat).join(', ')}
-              <span className="ml-2 text-sm font-normal text-gray-500">{selectedSeats.length}/{MAX_SEATS}석</span>
+              <span className="ml-2 text-sm font-normal text-gray-500">{selectedSeats.length}/{seatLimit}석</span>
             </p>
             <p className="mt-1 text-sm text-gray-500">{formatPrice(total)}</p>
           </>
@@ -118,7 +125,7 @@ export default function HoldPanel({
       <button
         type="button"
         onClick={onHold}
-        disabled={!bookingOpen || selectedSeats.length === 0 || holding}
+        disabled={!bookingOpen || seatLimit === 0 || selectedSeats.length === 0 || holding}
         className="rounded-lg bg-violet-600 px-5 py-2.5 font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-gray-300"
       >
         {!bookingOpen ? '오픈 전' : holding ? '선점 중...' : '선점하기'}
