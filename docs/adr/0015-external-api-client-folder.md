@@ -13,8 +13,6 @@ domain/booking/
 
 HTTP 호출은 Spring 내장 `RestClient`로 하며, 의존성은 추가하지 않는다. 시크릿 키는 `application.yml`에 적지 않고 환경변수로 주입한다. 테스트에서는 `TossPaymentsClient`를 Fake 구현으로 바꿔 끼운다.
 
-**선택 이유 (사용자)**: 대화에서 AI 추천에 동의했다. 직접 쓴 이유로 바꿀 것.
-
 ## Considered Options
 
 - **`booking/service` 안에 두기**: 레이어를 늘리지 않지만, 좌석 규칙을 조립하는 서비스와 외부 HTTP·JSON 변환 코드가 한 폴더에 섞인다.
