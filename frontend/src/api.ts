@@ -1,4 +1,5 @@
-export type Member = { id: number; name: string };
+export type Member = { id: number; email: string; name: string };
+export type Login = { accessToken: string };
 export type Performance = { id: number; title: string };
 export type Showtime = { id: number; startsAt: string; bookingOpenAt: string; price: number };
 export type SeatStatus = 'AVAILABLE' | 'HELD' | 'RESERVED';
@@ -18,6 +19,7 @@ export type MyReservation = {
   status: MyReservationStatus;
 };
 export type ReservationCancellation = { id: number; status: 'RESERVATION_CANCELLED' };
+export type RemainingSeatCount = { remainingSeatCount: number };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -30,16 +32,23 @@ export class ApiError extends Error {
   }
 }
 
-let memberId: number | null = null;
+const AUTH_ERROR_CODES = new Set(['AUTH_TOKEN_MISSING', 'AUTH_TOKEN_INVALID', 'AUTH_TOKEN_EXPIRED', 'MEMBER_NOT_FOUND']);
 
-export function setApiMemberId(id: number | null) {
-  memberId = id;
+let accessToken: string | null = null;
+let onUnauthorized: () => void = () => {};
+
+export function setApiAccessToken(token: string | null) {
+  accessToken = token;
+}
+
+export function setOnUnauthorized(handler: () => void) {
+  onUnauthorized = handler;
 }
 
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (memberId !== null) {
-    headers.set('X-Member-Id', String(memberId));
+  if (accessToken !== null) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
   }
   if (init.body) {
     headers.set('Content-Type', 'application/json');
@@ -54,6 +63,9 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 
   const body = await response.json().catch(() => null);
   if (!response.ok) {
+    if (accessToken !== null && response.status === 401 && AUTH_ERROR_CODES.has(body?.code)) {
+      onUnauthorized();
+    }
     throw new ApiError(response.status, body?.code, body?.detail ?? `요청에 실패했습니다. (${response.status})`);
   }
   return body as T;
@@ -62,7 +74,7 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 const pendingReads = new Map<string, Promise<unknown>>();
 
 function read<T>(url: string): Promise<T> {
-  const key = JSON.stringify([memberId, url]);
+  const key = JSON.stringify([accessToken, url]);
   const existing = pendingReads.get(key);
   if (existing) return existing as Promise<T>;
 
@@ -83,7 +95,10 @@ async function write<T>(url: string, init: RequestInit): Promise<T> {
 }
 
 export const api = {
-  members: () => read<Member[]>('/api/members'),
+  signup: (email: string, password: string, name: string) =>
+    write<Member>('/api/members', { method: 'POST', body: JSON.stringify({ email, password, name }) }),
+  login: (email: string, password: string) =>
+    write<Login>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   me: () => read<Member>('/api/members/me'),
   performances: () => read<Performance[]>('/api/performances'),
   showtimes: (performanceId: string) => read<Showtime[]>(`/api/performances/${performanceId}/showtimes`),
@@ -95,6 +110,8 @@ export const api = {
     }),
   cancelHold: (holdId: number) => write<HoldCancellation>(`/api/holds/${holdId}/cancellation`, { method: 'POST' }),
   pay: (holdId: number) => write<Reservation>(`/api/holds/${holdId}/payment`, { method: 'POST' }),
+  remainingSeatCount: (showtimeId: string) =>
+    read<RemainingSeatCount>(`/api/members/me/showtimes/${showtimeId}/remaining-seat-count`),
   myReservations: () => read<MyReservation[]>('/api/members/me/reservations'),
   cancelReservation: (reservationId: number) =>
     write<ReservationCancellation>(`/api/reservations/${reservationId}/cancellation`, { method: 'POST' }),

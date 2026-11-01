@@ -1,82 +1,82 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, setApiMemberId, type Member } from './api';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { api, setApiAccessToken, setOnUnauthorized, type Member } from './api';
 
-const STORAGE_KEY = 'ticketflow.memberId';
+const STORAGE_KEY = 'ticketflow.accessToken';
 
 type MemberContextValue = {
-  members: Member[];
   memberId: number | null;
   currentMember: Member | null;
-  memberError: boolean;
   ready: boolean;
-  failed: boolean;
-  selectMember: (id: number) => void;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => void;
 };
 
 const MemberContext = createContext<MemberContextValue | null>(null);
 
-function readStoredMemberId(): number | null {
+function readStoredToken(): string | null {
   try {
-    const value = localStorage.getItem(STORAGE_KEY);
-    return value ? Number(value) : null;
+    return localStorage.getItem(STORAGE_KEY);
   } catch {
     return null;
   }
 }
 
-function storeMemberId(id: number) {
+function storeToken(token: string | null) {
   try {
-    localStorage.setItem(STORAGE_KEY, String(id));
+    if (token === null) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, token);
+    }
   } catch {
     return;
   }
 }
 
 export function MemberProvider({ children }: { children: ReactNode }) {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [memberId, setMemberId] = useState<number | null>(null);
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
-  const [memberError, setMemberError] = useState(false);
   const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    api.members()
-      .then(loaded => {
-        setMembers(loaded);
-        const stored = readStoredMemberId();
-        const initial = loaded.find(member => member.id === stored) ?? loaded[0];
-        if (initial) {
-          setApiMemberId(initial.id);
-          setMemberId(initial.id);
-        }
-      })
-      .catch(() => setFailed(true))
-      .finally(() => setReady(true));
+  const logout = useCallback(() => {
+    storeToken(null);
+    setApiAccessToken(null);
+    setCurrentMember(null);
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    setCurrentMember(null);
-    setMemberError(false);
-    if (memberId !== null) {
-      api.me().then(member => {
-        if (active) setCurrentMember(member);
-      }).catch(() => {
-        if (active) setMemberError(true);
-      });
+  const loadMe = useCallback(async () => {
+    try {
+      setCurrentMember(await api.me());
+    } catch {
+      logout();
     }
-    return () => { active = false; };
-  }, [memberId]);
+  }, [logout]);
 
-  const selectMember = (id: number) => {
-    setApiMemberId(id);
-    storeMemberId(id);
-    setMemberId(id);
+  useEffect(() => {
+    setOnUnauthorized(logout);
+    const stored = readStoredToken();
+    if (stored === null) {
+      setReady(true);
+      return;
+    }
+    setApiAccessToken(stored);
+    loadMe().finally(() => setReady(true));
+  }, [logout, loadMe]);
+
+  const login = async (email: string, password: string) => {
+    const { accessToken } = await api.login(email, password);
+    storeToken(accessToken);
+    setApiAccessToken(accessToken);
+    await loadMe();
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    await api.signup(email, password, name);
+    await login(email, password);
   };
 
   return (
-    <MemberContext.Provider value={{ members, memberId, currentMember, memberError, ready, failed, selectMember }}>
+    <MemberContext.Provider value={{ memberId: currentMember?.id ?? null, currentMember, ready, login, signup, logout }}>
       {children}
     </MemberContext.Provider>
   );

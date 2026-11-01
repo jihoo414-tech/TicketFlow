@@ -19,4 +19,4 @@
 - 코드 주석에 결정 ID, 티켓·이슈 번호, phase 번호를 넣지 않는다.
 
 ## 스택
-Java 21, Spring Boot 4, JPA, MySQL(Docker), Gradle(Groovy). 프론트는 React + Vite + TypeScript + Tailwind CSS(빌드 결과물을 Spring이 서빙). 회원은 Security 도입 전까지 `X-Member-Id` 헤더로 식별한다.
+Java 21, Spring Boot 4, JPA, MySQL(Docker), Gradle(Groovy). 프론트는 React + Vite + TypeScript + Tailwind CSS(빌드 결과물을 Spring이 서빙). 회원은 Spring Security가 검증한 JWT(`Authorization: Bearer`)로 식별한다.

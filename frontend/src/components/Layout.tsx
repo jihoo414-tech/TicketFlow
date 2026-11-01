@@ -1,28 +1,31 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useMember } from '../member';
 
-function DevMemberSwitch() {
-  const { members, memberId, currentMember, memberError, ready, failed, selectMember } = useMember();
+function MemberMenu() {
+  const { currentMember, ready, logout } = useMember();
+  const navigate = useNavigate();
 
+  if (!ready) {
+    return null;
+  }
+  if (!currentMember) {
+    return (
+      <div className="flex items-center gap-3 text-sm">
+        <Link to="/login" className="text-gray-600 hover:text-violet-700">로그인</Link>
+        <Link to="/signup" className="rounded-lg bg-violet-600 px-3 py-1.5 font-semibold text-white hover:bg-violet-700">회원가입</Link>
+      </div>
+    );
+  }
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
-    {memberId !== null && <span className="text-xs text-gray-600">{memberError ? '현재 회원 조회 실패' : currentMember ? `현재 회원: ${currentMember.name} (#${currentMember.id})` : '현재 회원 확인 중...'}</span>}
-    <label className="flex items-center gap-2 rounded-full border border-dashed border-amber-400 bg-amber-50 px-3 py-1 text-xs text-amber-800">
-      <span className="font-semibold">개발용 · 회원 전환</span>
-      <select
-        className="rounded bg-white px-1 py-0.5 text-gray-900 outline-none"
-        value={memberId ?? ''}
-        disabled={!ready || members.length === 0}
-        onChange={event => selectMember(Number(event.target.value))}
+    <div className="flex items-center gap-3 text-sm">
+      <span className="text-gray-600">{currentMember.name}님</span>
+      <button
+        type="button"
+        onClick={() => { logout(); navigate('/'); }}
+        className="text-gray-500 hover:text-violet-700"
       >
-        {!ready && <option value="">불러오는 중...</option>}
-        {ready && failed && <option value="">불러오기 실패</option>}
-        {ready && !failed && members.length === 0 && <option value="">회원 없음</option>}
-        {members.map(member => (
-          <option key={member.id} value={member.id}>{member.name}</option>
-        ))}
-      </select>
-    </label>
+        로그아웃
+      </button>
     </div>
   );
 }
@@ -36,7 +39,7 @@ export default function Layout() {
             <Link to="/" className="text-lg font-bold text-violet-700">TicketFlow</Link>
             <Link to="/reservations" className="text-sm text-gray-600 hover:text-violet-700">내 예매</Link>
           </div>
-          <DevMemberSwitch />
+          <MemberMenu />
         </div>
       </header>
       <main className="mx-auto max-w-4xl px-4 py-8">

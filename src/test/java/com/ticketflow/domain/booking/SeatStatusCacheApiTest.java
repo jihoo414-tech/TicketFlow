@@ -1,6 +1,7 @@
 package com.ticketflow.domain.booking;
 
 import com.ticketflow.TestClock;
+import com.ticketflow.fixture.AuthHeaders;
 import com.ticketflow.TestTicker;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.fixture.HoldFixture;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,9 @@ class SeatStatusCacheApiTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    AuthHeaders authHeaders;
 
     @Autowired
     TestClock testClock;
@@ -83,7 +88,7 @@ class SeatStatusCacheApiTest {
 
     private void hold(HoldFixture fixture) throws Exception {
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}

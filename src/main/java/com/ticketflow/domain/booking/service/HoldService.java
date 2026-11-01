@@ -3,6 +3,7 @@ package com.ticketflow.domain.booking.service;
 import com.ticketflow.domain.booking.dto.HoldCancellationResponse;
 import com.ticketflow.domain.booking.dto.HoldResponse;
 import com.ticketflow.domain.booking.dto.OccupiedSeat;
+import com.ticketflow.domain.booking.dto.RemainingSeatCountResponse;
 import com.ticketflow.domain.booking.dto.SeatResponse;
 import com.ticketflow.domain.booking.dto.SeatStatus;
 import com.ticketflow.domain.booking.entity.Hold;
@@ -83,6 +84,12 @@ public class HoldService {
     }
 
     @Transactional(readOnly = true)
+    public RemainingSeatCountResponse getRemainingSeatCount(Long memberId, Long showtimeId) {
+        showtimeService.findShowtime(showtimeId);
+        return new RemainingSeatCountResponse(Hold.remainingSeatCount(countReservedSeats(memberId, showtimeId)));
+    }
+
+    @Transactional(readOnly = true)
     public Hold findHold(Long holdId) {
         return holdRepository.findById(holdId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.HOLD_NOT_FOUND));
@@ -120,9 +127,11 @@ public class HoldService {
     }
 
     private void validateSeatLimit(Long memberId, Long showtimeId, List<Seat> seats) {
-        long reservedSeatCount = holdSeatRepository.countByMemberIdAndShowtimeIdAndStatus(
-                memberId, showtimeId, HoldStatus.RESERVED);
-        Hold.validateSeatLimit(reservedSeatCount, seats.size());
+        Hold.validateSeatLimit(countReservedSeats(memberId, showtimeId), seats.size());
+    }
+
+    private long countReservedSeats(Long memberId, Long showtimeId) {
+        return holdSeatRepository.countByMemberIdAndShowtimeIdAndStatus(memberId, showtimeId, HoldStatus.RESERVED);
     }
 
     private void validateSeatsNotHeld(List<Long> seatIds, LocalDateTime now) {

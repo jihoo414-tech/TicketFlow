@@ -4,7 +4,7 @@ import com.ticketflow.domain.booking.dto.MyReservationResponse;
 import com.ticketflow.domain.booking.dto.ReservationCancellationResponse;
 import com.ticketflow.domain.booking.dto.ReservationResponse;
 import com.ticketflow.domain.booking.service.ReservationService;
-import com.ticketflow.domain.member.controller.CurrentMemberId;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +22,7 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @PostMapping("/api/holds/{holdId}/payment")
-    public ResponseEntity<ReservationResponse> pay(@CurrentMemberId Long memberId,
+    public ResponseEntity<ReservationResponse> pay(@AuthenticationPrincipal Long memberId,
                                                    @PathVariable Long holdId) {
         ReservationResponse reservationResponse = reservationService.pay(memberId, holdId);
 
@@ -30,14 +30,14 @@ public class ReservationController {
     }
 
     @GetMapping("/api/members/me/reservations")
-    public ResponseEntity<List<MyReservationResponse>> getMyReservations(@CurrentMemberId Long memberId) {
+    public ResponseEntity<List<MyReservationResponse>> getMyReservations(@AuthenticationPrincipal Long memberId) {
         List<MyReservationResponse> myReservationResponseList = reservationService.getMyReservations(memberId);
 
         return ResponseEntity.ok(myReservationResponseList);
     }
 
     @PostMapping("/api/reservations/{reservationId}/cancellation")
-    public ResponseEntity<ReservationCancellationResponse> cancel(@CurrentMemberId Long memberId,
+    public ResponseEntity<ReservationCancellationResponse> cancel(@AuthenticationPrincipal Long memberId,
                                                                   @PathVariable Long reservationId) {
         ReservationCancellationResponse reservationCancellationResponse = reservationService.cancel(memberId, reservationId);
 

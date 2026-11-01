@@ -19,7 +19,6 @@ import target as targets
 
 ROOT = Path(__file__).resolve().parent.parent
 PERF = ROOT / 'perf'
-K6_DIR = PERF / 'k6'
 OUT = PERF / 'out'
 RESULTS = ROOT / 'docs' / 'performance'
 MAIN_SHOWTIME = 1
@@ -89,13 +88,7 @@ def seed_seats(showtime_id, count):
 
 
 def k6(script, run_dir, env):
-    cmd = ['k6', 'run', '--quiet', '--out', f'csv={run_dir / "k6.csv"}']
-    for key, value in {**env, 'BASE_URL': TARGET.app_url}.items():
-        cmd += ['-e', f'{key}={value}']
-    cmd.append(script)
-    with open(run_dir / f'{Path(script).stem}.log', 'w', encoding='utf-8') as out:
-        return subprocess.run(cmd, cwd=K6_DIR, stdout=out, stderr=subprocess.STDOUT,
-                              env={**os.environ, 'K6_CSV_TIME_FORMAT': 'unix_milli'}).returncode
+    return TARGET.run_k6(script, run_dir, env)
 
 
 def warmup(run_dir):
@@ -364,11 +357,11 @@ def run_trial(session, seats, label, tag, n, trials, csv_name, **extra):
     summary = measure(session / f'peak-seats{seats:04d}-{tag}-n{n:04d}', 'peak.js',
                       {'ACTIVE_MEMBERS': n, 'SHOWTIME_ID': MAIN_SHOWTIME}, seats)
     summary.update({**extra, 'active_members': n})
-    summary['passed'] = bool(summary['server_seats_p95_ms'] <= PEAK_P95_TARGET
-                             and summary['server_hold_p95_ms'] <= PEAK_P95_TARGET
+    summary['passed'] = bool(summary['seats_p95_ms'] <= PEAK_P95_TARGET
+                             and summary['hold_p95_ms'] <= PEAK_P95_TARGET
                              and summary['system_errors'] == 0 and summary['integrity_ok'])
-    log(f"  서버 p95 조회 {summary['server_seats_p95_ms']:.0f}ms · 선점 {summary['server_hold_p95_ms']:.0f}ms "
-        f"(k6 {summary['seats_p95_ms']:.0f} · {summary['hold_p95_ms']:.0f}ms), "
+    log(f"  k6 p95 조회 {summary['seats_p95_ms']:.0f}ms · 선점 {summary['hold_p95_ms']:.0f}ms "
+        f"(서버 {summary['server_seats_p95_ms']:.0f} · {summary['server_hold_p95_ms']:.0f}ms), "
         f"커넥션 대기 {summary.get('hikari_acquire_avg_ms', float('nan')):.1f}ms, "
         f"커넥션 사용 {summary.get('hikari_usage_avg_ms', float('nan')):.1f}ms, "
         f"오류 {summary['system_errors']}, 정합성 {summary['integrity_ok']} → {'통과' if summary['passed'] else '실패'}")

@@ -14,10 +14,18 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     @Column(name = "name")
     private String name;
 
-    public Member(String name) {
+    public Member(String email, String passwordHash, String name) {
+        this.email = email;
+        this.passwordHash = passwordHash;
         this.name = name;
     }
 }

@@ -2,6 +2,8 @@ package com.ticketflow.concurrency;
 
 import com.jayway.jsonpath.JsonPath;
 import com.ticketflow.TestClock;
+import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.TestMembers;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
@@ -48,6 +51,9 @@ class ReservationConcurrencyTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    AuthHeaders authHeaders;
 
     @Autowired
     TestClock testClock;
@@ -112,7 +118,7 @@ class ReservationConcurrencyTest {
         List<Callable<Integer>> requests = new ArrayList<>();
         requests.add(() -> payStatus(fixture, holdId));
         for (int i = 0; i < REQUEST_COUNT; i++) {
-            Member other = memberRepository.save(new Member("회원" + (i + 2)));
+            Member other = memberRepository.save(TestMembers.member("회원" + (i + 2)));
             requests.add(() -> holdStatus(fixture, other));
         }
 
@@ -154,7 +160,7 @@ class ReservationConcurrencyTest {
 
     private int payStatus(HoldFixture fixture, Long holdId) throws Exception {
         return mockMvc.perform(post("/api/holds/{holdId}/payment", holdId)
-                        .header("X-Member-Id", fixture.member().getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId())))
                 .andReturn()
                 .getResponse()
                 .getStatus();
@@ -162,7 +168,7 @@ class ReservationConcurrencyTest {
 
     private int holdStatus(HoldFixture fixture, Member member) throws Exception {
         return mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -188,7 +194,7 @@ class ReservationConcurrencyTest {
                 futures.add(executor.submit(() -> {
                     start.await();
                     return mockMvc.perform(post("/api/holds/{holdId}/payment", holdId)
-                                    .header("X-Member-Id", fixture.member().getId()))
+                                    .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId())))
                             .andReturn()
                             .getResponse();
                 }));
@@ -204,7 +210,7 @@ class ReservationConcurrencyTest {
 
     private Long hold(HoldFixture fixture) throws Exception {
         String body = mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}

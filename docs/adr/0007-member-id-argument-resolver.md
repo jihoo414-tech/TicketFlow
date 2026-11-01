@@ -1,3 +1,7 @@
+---
+status: superseded by ADR-0022
+---
+
 # 요청한 회원은 `@CurrentMemberId` + ArgumentResolver 한 곳에서 식별한다
 
 Security를 도입하기 전까지 회원은 `X-Member-Id` 헤더로 식별한다. 이 헤더를 읽는 곳은 `CurrentMemberIdArgumentResolver` 하나다. 이 Resolver는 헤더 값을 숫자로 바꾸고 회원이 존재하는지 확인한 뒤, `@CurrentMemberId Long memberId` 파라미터에 넣는다. 컨트롤러는 헤더를 모르고, 검증이 끝난 회원 id만 받는다. 어노테이션과 Resolver는 `domain/member/controller`에 두고, Resolver 등록은 `global/config/WebConfig`에서 한다.
