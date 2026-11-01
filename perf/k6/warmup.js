@@ -1,5 +1,5 @@
 import exec from 'k6/execution';
-import { holdWithRetry, lookupAvailableSeats } from './lib.js';
+import { holdWithRetry, lookupAdjacentPairs } from './lib.js';
 
 const SHOWTIME_ID = Number(__ENV.SHOWTIME_ID || 2);
 const MEMBER_OFFSET = Number(__ENV.MEMBER_OFFSET || 9000);
@@ -12,5 +12,5 @@ export const options = {
 
 export default function () {
     const memberId = MEMBER_OFFSET + exec.scenario.iterationInTest + 1;
-    holdWithRetry(SHOWTIME_ID, memberId, lookupAvailableSeats(SHOWTIME_ID, memberId));
+    holdWithRetry(SHOWTIME_ID, memberId, lookupAdjacentPairs(SHOWTIME_ID, memberId));
 }
