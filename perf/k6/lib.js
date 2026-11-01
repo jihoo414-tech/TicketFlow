@@ -1,9 +1,14 @@
 import { sleep } from 'k6';
+import crypto from 'k6/crypto';
+import encoding from 'k6/encoding';
 import http from 'k6/http';
 import { Counter, Rate } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8081';
 const MAX_HOLD_ATTEMPTS = 3;
+const JWT_SECRET = __ENV.JWT_SECRET || '';
+const TOKEN_TTL_SECONDS = 3600;
+const tokens = new Map();
 
 const systemErrors = new Counter('system_errors');
 const systemErrorRate = new Rate('system_error_rate');
@@ -13,9 +18,24 @@ export const scenarioSuccess = new Rate('scenario_success');
 
 http.setResponseCallback(http.expectedStatuses(200, 201, 409));
 
+function base64Url(value) {
+    return encoding.b64encode(value, 'rawurl');
+}
+
+function accessToken(memberId) {
+    if (!tokens.has(memberId)) {
+        const now = Math.floor(Date.now() / 1000);
+        const header = base64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+        const payload = base64Url(JSON.stringify({ sub: String(memberId), iat: now, exp: now + TOKEN_TTL_SECONDS }));
+        const signature = base64Url(crypto.hmac('sha256', JWT_SECRET, `${header}.${payload}`, 'binary'));
+        tokens.set(memberId, `${header}.${payload}.${signature}`);
+    }
+    return tokens.get(memberId);
+}
+
 function params(memberId, name) {
     return {
-        headers: { 'X-Member-Id': String(memberId), 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${accessToken(memberId)}`, 'Content-Type': 'application/json' },
         tags: { name },
         timeout: '2s',
     };

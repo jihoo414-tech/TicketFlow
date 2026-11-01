@@ -37,7 +37,7 @@ public class HoldFixtureFactory {
         List<Seat> seats = seatRepository.saveAll(IntStream.rangeClosed(1, seatCount)
                 .mapToObj(seatNo -> new Seat(showtime, "A", seatNo))
                 .toList());
-        Member member = memberRepository.save(new Member("회원1"));
+        Member member = memberRepository.save(TestMembers.member("회원1"));
         return new HoldFixture(showtime, seats, member);
     }
 }

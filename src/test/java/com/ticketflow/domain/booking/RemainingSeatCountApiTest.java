@@ -2,6 +2,7 @@ package com.ticketflow.domain.booking;
 
 import com.jayway.jsonpath.JsonPath;
 import com.ticketflow.TestClock;
+import com.ticketflow.fixture.AuthHeaders;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.member.entity.Member;
 import com.ticketflow.fixture.HoldFixture;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -33,6 +35,9 @@ class RemainingSeatCountApiTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    AuthHeaders authHeaders;
 
     @Autowired
     TestClock testClock;
@@ -99,18 +104,18 @@ class RemainingSeatCountApiTest {
 
     private ResultActions getRemainingSeatCount(Member member, Long showtimeId) throws Exception {
         return mockMvc.perform(get("/api/members/me/showtimes/{showtimeId}/remaining-seat-count", showtimeId)
-                .header("X-Member-Id", member.getId()));
+                .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId())));
     }
 
     private void cancelReservation(Member member, Long reservationId) throws Exception {
         mockMvc.perform(post("/api/reservations/{reservationId}/cancellation", reservationId)
-                        .header("X-Member-Id", member.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId())))
                 .andExpect(status().isOk());
     }
 
     private Long pay(Member member, Long holdId) throws Exception {
         String body = mockMvc.perform(post("/api/holds/{holdId}/payment", holdId)
-                        .header("X-Member-Id", member.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId())))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
@@ -120,7 +125,7 @@ class RemainingSeatCountApiTest {
 
     private Long hold(Member member, HoldFixture fixture, List<Long> seatIds) throws Exception {
         String body = mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}

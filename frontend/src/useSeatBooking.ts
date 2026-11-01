@@ -103,6 +103,10 @@ export function useSeatBooking(showtimeId: string) {
   };
 
   const submitHold = async () => {
+    if (memberId === null) {
+      setNotice('로그인 후 선점할 수 있습니다.');
+      return;
+    }
     setHolding(true);
     try {
       const created = await api.hold(showtimeId, [...selectedIds]);
