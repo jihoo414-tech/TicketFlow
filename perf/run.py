@@ -26,11 +26,10 @@ DB_CONTAINER = 'ticketflow-aws-mysql-1'
 CPU_LIMIT = 2
 MAIN_SHOWTIME = 1
 
-STEADY_VUS = [10, 25, 50, 100, 150]
-STEADY_DURATION = '3m'
-STEADY_SEATS_P95_TARGET = 300
-STEADY_HOLD_P95_TARGET = 500
-STEADY_ERROR_RATE_TARGET = 0.001
+WARMUP_SHOWTIME = 2
+SEAT_COUNTS = [250, 500, 750, 1000]
+SEATS_PER_ROW = 25
+WARMUP_SEATS = 2000
 
 PEAK_START = 50
 PEAK_CAP = 3000
@@ -80,9 +79,16 @@ def fetch_json(path, timeout=1.0):
         return json.load(res)
 
 
-def reset():
+def reset(seats):
     sh(COMPOSE + ['down', '-v', '--remove-orphans'], cwd=ROOT)
     sh(COMPOSE + ['up', '-d', '--wait'], cwd=ROOT)
+    wait_for_app()
+    seed_seats(MAIN_SHOWTIME, seats)
+    seed_seats(WARMUP_SHOWTIME, WARMUP_SEATS)
+    mysql('ANALYZE TABLE member, performance, showtime, seat, hold, hold_seat, reservation')
+
+
+def wait_for_app():
     deadline = time.time() + 120
     while time.time() < deadline:
         try:
@@ -92,6 +98,15 @@ def reset():
             pass
         time.sleep(1)
     raise RuntimeError('앱이 120초 안에 뜨지 않았다')
+
+
+def seed_seats(showtime_id, count):
+    mysql(f"""
+        SET SESSION cte_max_recursion_depth = {count};
+        INSERT INTO seat (showtime_id, seat_row, seat_no)
+        WITH RECURSIVE seq (n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM seq WHERE n < {count - 1})
+        SELECT {showtime_id}, CONCAT('R', LPAD(FLOOR(n / {SEATS_PER_ROW}) + 1, 3, '0')), MOD(n, {SEATS_PER_ROW}) + 1
+        FROM seq""")
 
 
 def k6(script, run_dir, env):
@@ -324,9 +339,9 @@ def per_second(k6_frame, collector, started):
     return timeline
 
 
-def measure(run_dir, script, env):
+def measure(run_dir, script, env, seats):
     run_dir.mkdir(parents=True, exist_ok=True)
-    reset()
+    reset(seats)
     warmup(run_dir)
     with Collector() as collector:
         time.sleep(2)
@@ -336,48 +351,17 @@ def measure(run_dir, script, env):
         time.sleep(2)
     summary = summarize(run_dir, collector, started, ended)
     summary['k6_exit_code'] = exit_code
+    summary['seats'] = seats
     return summary
 
 
-def steady(session):
-    rows = []
-    for vus in STEADY_VUS:
-        log(f'정상 부하 VU {vus} 시작 ({STEADY_DURATION})')
-        summary = measure(session / f'steady-vu{vus:03d}', 'steady.js',
-                          {'VUS': vus, 'DURATION': STEADY_DURATION, 'SHOWTIME_ID': MAIN_SHOWTIME})
-        summary['vus'] = vus
-        summary['meets_spec'] = (summary['seats_p95_ms'] <= STEADY_SEATS_P95_TARGET
-                                 and summary['hold_p95_ms'] <= STEADY_HOLD_P95_TARGET
-                                 and summary['error_rate'] < STEADY_ERROR_RATE_TARGET and summary['integrity_ok'])
-        summary['meets_adr'] = (summary['seats_p95_ms'] <= PEAK_P95_TARGET and summary['hold_p95_ms'] <= PEAK_P95_TARGET
-                                and summary['system_errors'] == 0 and summary['integrity_ok'])
-        log(f"  조회 p95 {summary['seats_p95_ms']:.0f}ms, 선점 p95 {summary['hold_p95_ms']:.0f}ms, "
-            f"RPS {summary['rps']:.1f}, 오류 {summary['system_errors']}, 정합성 {summary['integrity_ok']}")
-        rows.append(summary)
-    export_steady(session, rows)
-
-
-def export_steady(session, rows):
-    RESULTS.mkdir(parents=True, exist_ok=True)
-    frame = pd.DataFrame(rows)
-    frame.insert(0, 'vus', frame.pop('vus'))
-    frame.to_csv(RESULTS / 'steady_summary.csv', index=False, float_format='%.4f')
-    timelines, queries = [], []
-    for vus in frame.vus:
-        run_dir = session / f'steady-vu{vus:03d}'
-        timelines.append(pd.read_csv(run_dir / 'timeline.csv').assign(vus=vus))
-        queries.append(pd.read_csv(run_dir / 'queries.csv').assign(vus=vus))
-    pd.concat(timelines).to_csv(RESULTS / 'steady_timeseries.csv', index=False, float_format='%.4f')
-    pd.concat(queries).to_csv(RESULTS / 'steady_queries.csv', index=False)
-
-
-def peak(session):
+def peak(session, seats):
     trials = []
 
     def trial(search, n):
         log(f'오픈 피크 탐색 {search}: 활성 회원 {n}명')
-        summary = measure(session / f'peak-s{search}-n{n:04d}', 'peak.js',
-                          {'ACTIVE_MEMBERS': n, 'SHOWTIME_ID': MAIN_SHOWTIME})
+        summary = measure(session / f'peak-seats{seats:04d}-s{search}-n{n:04d}', 'peak.js',
+                          {'ACTIVE_MEMBERS': n, 'SHOWTIME_ID': MAIN_SHOWTIME}, seats)
         summary.update({'search': search, 'active_members': n})
         summary['passed'] = bool(summary['seats_p95_ms'] <= PEAK_P95_TARGET and summary['hold_p95_ms'] <= PEAK_P95_TARGET
                                  and summary['system_errors'] == 0 and summary['integrity_ok'])
@@ -421,7 +405,7 @@ def peak(session):
         results.append({'search': search, 'n_max': n_max, 'bounded': bounded})
     values = [r['n_max'] for r in results]
     spread = (max(values) - min(values)) / min(values) if min(values) else float('nan')
-    report = {'searches': results, 'spread': spread, 'admission': int(min(values) * (1 - spread)) if min(values) else 0}
+    report = {'seats': seats, 'searches': results, 'spread': spread, 'admission': int(min(values) * (1 - spread)) if min(values) else 0}
     (RESULTS / 'peak_result.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
     log(f'N_max {values}, 편차 {spread:.1%}, 입장 인원 {report["admission"]}')
 
@@ -436,7 +420,8 @@ def keep_awake():
 def main():
     keep_awake()
     parser = argparse.ArgumentParser(description='TicketFlow 부하 테스트를 실행하고 결과를 docs/performance/에 저장한다')
-    parser.add_argument('scenario', choices=['steady', 'peak', 'all'])
+    parser.add_argument('scenario', choices=['peak'])
+    parser.add_argument('--seats', type=int, choices=SEAT_COUNTS, default=SEAT_COUNTS[-1])
     parser.add_argument('--skip-build', action='store_true')
     args = parser.parse_args()
 
@@ -444,10 +429,7 @@ def main():
     session.mkdir(parents=True, exist_ok=True)
     if not args.skip_build:
         build()
-    if args.scenario in ('steady', 'all'):
-        steady(session)
-    if args.scenario in ('peak', 'all'):
-        peak(session)
+    peak(session, args.seats)
     sh(COMPOSE + ['down', '-v'], cwd=ROOT)
     log(f'완료: 원본 {session}, 집계 {RESULTS}')
 
