@@ -17,8 +17,9 @@ GRID = '#e4e3df'
 REFERENCE = '#8a8984'
 SERIES = ['#2a78d6', '#eb6834', '#1baf7a']
 
-PEAK_CONDITION = ('측정 조건: 로컬 Docker · 앱 2 vCPU/850 MiB · MySQL 2 vCPU/1 GiB · HikariCP 10 · 6,000석 · '
-                  '활성 회원 N명 동시 출발 → 조회 → 0~0.5초 → 2석 선점(409면 재조회, 최대 3회) · 실행마다 DB 초기화와 워밍업')
+PEAK_CONDITION = ('측정 조건: 로컬 Docker · 앱 2 vCPU/850 MiB · MySQL 2 vCPU/1 GiB · HikariCP 10 · {seats:,}석(열당 25석) · '
+                  '활성 회원 N명 동시 출발 → 조회 → 0.5~1초 → 붙은 2석 선점(409면 재조회 후 0.5~1초, 최대 3회) · '
+                  '실행마다 DB 초기화와 워밍업')
 
 
 def setup_font():
@@ -58,7 +59,8 @@ def reference_line(ax, y, label):
 
 
 def plot_peak(trials, result):
-    fig, ax = figure('오픈 피크: 활성 회원 수별 응답 시간 p95와 판정', PEAK_CONDITION)
+    seats = result['seats']
+    fig, ax = figure(f'오픈 피크 {seats:,}석: 활성 회원 수별 응답 시간 p95와 판정', PEAK_CONDITION.format(seats=seats))
     for column, label, color in (('seats_p95_ms', '좌석 조회 p95', SERIES[0]), ('hold_p95_ms', '선점 p95', SERIES[1])):
         for passed, marker in ((True, 'o'), (False, 'X')):
             part = trials[trials.passed == passed]
@@ -75,17 +77,19 @@ def plot_peak(trials, result):
     ax.set_xlabel('활성 회원 수 N (명, 로그 축)')
     ax.set_ylabel('응답 시간 p95 (ms)')
     values = ', '.join(str(s['n_max']) for s in result['searches'])
-    ax.set_title(f'탐색별 N_max: {values} → 입장 인원 {result["admission"]}명 (편차 {result["spread"]:.1%})',
+    verdict = f'상한 {result["cap"]}명까지 모두 통과 → 모두 들여보내도 된다' if result['admit_all'] \
+        else f'입장 인원 {result["admission"]}명 (편차 {result["spread"]:.1%})'
+    ax.set_title(f'탐색별 N_max: {values} → {verdict}',
                  loc='left', fontsize=10.5, fontweight='normal', color=TEXT_SECONDARY)
     ax.legend(loc='upper left', ncols=2)
-    save(fig, '6-peak-search.png')
+    save(fig, f'peak-search-seats{seats:04d}.png')
 
 
 def main():
     setup_font()
-    if (RESULTS / 'peak_result.json').exists():
-        plot_peak(pd.read_csv(RESULTS / 'peak_trials.csv'),
-                  json.loads((RESULTS / 'peak_result.json').read_text(encoding='utf-8')))
+    for result_path in sorted(RESULTS.glob('peak_result_seats*.json')):
+        trials_path = result_path.with_name(result_path.name.replace('peak_result', 'peak_trials').replace('.json', '.csv'))
+        plot_peak(pd.read_csv(trials_path), json.loads(result_path.read_text(encoding='utf-8')))
 
 
 if __name__ == '__main__':
