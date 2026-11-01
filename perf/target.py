@@ -87,7 +87,7 @@ class LocalTarget:
         return sh(['docker', 'exec', self.app_container, 'cat', ACCESS_LOG]).stdout.splitlines()
 
     def run_k6(self, script, run_dir, env):
-        return run_local_k6(script, run_dir, {**env, 'BASE_URL': self.app_url})
+        return run_local_k6(script, run_dir, {**env, 'BASE_URL': self.app_url, 'JWT_SECRET': self.env['JWT_SECRET']})
 
     def sample_resources(self, metric):
         out = sh(['docker', 'stats', '--no-stream', '--format', '{{json .}}', self.app_container, self.db_container]).stdout
@@ -188,6 +188,7 @@ class AwsTarget:
         return self.remote(f'docker exec {self.app_container} cat {ACCESS_LOG}').splitlines()
 
     def run_k6(self, script, run_dir, env):
+        env = {**env, 'JWT_SECRET': self.env['AWS_JWT_SECRET']}
         if not self.k6_host:
             return run_local_k6(script, run_dir, {**env, 'BASE_URL': self.app_url})
         command = ' '.join(shlex.quote(part) for part in k6_command(script, '/tmp/k6.csv', {**env, 'BASE_URL': self.k6_app_url}))

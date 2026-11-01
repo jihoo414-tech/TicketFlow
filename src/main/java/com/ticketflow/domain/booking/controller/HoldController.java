@@ -5,7 +5,7 @@ import com.ticketflow.domain.booking.dto.HoldRequest;
 import com.ticketflow.domain.booking.dto.HoldResponse;
 import com.ticketflow.domain.booking.dto.RemainingSeatCountResponse;
 import com.ticketflow.domain.booking.service.HoldService;
-import com.ticketflow.domain.member.controller.CurrentMemberId;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,7 +23,7 @@ public class HoldController {
     private final HoldService holdService;
 
     @PostMapping("/api/showtimes/{showtimeId}/holds")
-    public ResponseEntity<HoldResponse> hold(@CurrentMemberId(checkExists = false) Long memberId,
+    public ResponseEntity<HoldResponse> hold(@AuthenticationPrincipal Long memberId,
                                              @PathVariable Long showtimeId,
                                              @Valid @RequestBody HoldRequest request) {
         HoldResponse holdResponse = holdService.hold(memberId, showtimeId, request.seatIds());
@@ -32,7 +32,7 @@ public class HoldController {
     }
 
     @PostMapping("/api/holds/{holdId}/cancellation")
-    public ResponseEntity<HoldCancellationResponse> cancel(@CurrentMemberId Long memberId,
+    public ResponseEntity<HoldCancellationResponse> cancel(@AuthenticationPrincipal Long memberId,
                                                            @PathVariable Long holdId) {
         HoldCancellationResponse holdCancellationResponse = holdService.cancel(memberId, holdId);
 
@@ -40,7 +40,7 @@ public class HoldController {
     }
 
     @GetMapping("/api/members/me/showtimes/{showtimeId}/remaining-seat-count")
-    public ResponseEntity<RemainingSeatCountResponse> getRemainingSeatCount(@CurrentMemberId Long memberId,
+    public ResponseEntity<RemainingSeatCountResponse> getRemainingSeatCount(@AuthenticationPrincipal Long memberId,
                                                                             @PathVariable Long showtimeId) {
         RemainingSeatCountResponse remainingSeatCountResponse = holdService.getRemainingSeatCount(memberId, showtimeId);
 

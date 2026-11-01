@@ -16,9 +16,10 @@
 | 선점 만료 | 5분이 지나면 정리 작업이 없어도 그 즉시 좌석이 다시 열린다. |
 | 결제 → 예매 | 만료 전에 시작된 결제만 예매가 된다. 결제 진행 중인 선점은 만료되지 않는다. |
 | 예매 조회·취소 | 내 예매 목록(공연·회차·좌석·금액·상태)을 보고, 회차 시작 전에 예매 전체를 취소한다. |
-| 화면 | React 화면에서 회원을 고르고 위 흐름을 모두 진행할 수 있다. |
+| 가입·로그인 | 이메일과 비밀번호로 가입하고 로그인한다. 공연·회차·좌석은 로그인 없이 볼 수 있다. |
+| 화면 | React 화면에서 로그인하고 위 흐름을 모두 진행할 수 있다. |
 
-회원 인증은 아직 없다. Security 도입 전까지 회원은 `X-Member-Id` 헤더로 식별한다.
+로그인하면 서버가 서명한 JWT(1시간)를 주고, 회원이 필요한 요청은 `Authorization: Bearer` 헤더로 보낸다([ADR 0022](docs/adr/0022-authenticate-with-jwt-bearer-token.md)).
 
 ## 핵심 규칙
 
@@ -67,6 +68,7 @@ cp .env.example .env
 | `MYSQL_PORT` | 호스트 포트. 비우면 docker-compose는 `3315`를 쓴다 |
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` | DB 접속 정보 |
 | `SPRING_PROFILES_ACTIVE` | `local`이면 시작할 때 샘플 데이터를 넣는다 |
+| `JWT_SECRET` | 토큰 서명 키(32바이트 이상). `local` 프로파일은 비워 두면 로컬 전용 기본값을 쓴다 |
 
 Spring은 `.env`를 직접 읽지 않는다. IDE 실행 설정에 환경 변수로 넣거나, 셸에서 export한 뒤 실행한다.
 
@@ -88,7 +90,7 @@ docker compose up -d
 
 `local` 프로파일의 샘플 데이터:
 
-- 회원 3명 (회원1~3)
+- 회원 3명: `member1@ticketflow.local` ~ `member3@ticketflow.local`, 비밀번호는 모두 `password1234`
 - 레미제라블 2회차(하나는 예매 오픈 전, 3분 뒤 오픈), 오페라의 유령 1회차
 - 회차마다 A~E열 × 10석
 
@@ -120,11 +122,12 @@ Testcontainers가 MySQL 컨테이너를 띄우므로 Docker가 켜져 있어야 
 
 ## API
 
-성공하면 DTO를 그대로, 실패하면 RFC 9457 `ProblemDetail`에 `code`(`ErrorCode` 이름)를 더해 응답한다([ADR 0006](docs/adr/0006-response-format.md)). 회원이 필요한 요청은 `X-Member-Id` 헤더를 보낸다.
+성공하면 DTO를 그대로, 실패하면 RFC 9457 `ProblemDetail`에 `code`(`ErrorCode` 이름)를 더해 응답한다([ADR 0006](docs/adr/0006-response-format.md)). 회원이 필요한 요청은 `Authorization: Bearer <토큰>` 헤더를 보낸다. 토큰이 없거나 틀리거나 만료되면 401(`AUTH_TOKEN_MISSING` / `AUTH_TOKEN_INVALID` / `AUTH_TOKEN_EXPIRED`)이다.
 
 | 메서드 | 경로 | 설명 | 회원 |
 |---|---|---|:---:|
-| GET | `/api/members` | 회원 목록 | |
+| POST | `/api/members` | 가입 (`{"email", "password", "name"}`) | |
+| POST | `/api/auth/login` | 로그인 → `{"accessToken"}` | |
 | GET | `/api/members/me` | 현재 회원 | ✓ |
 | GET | `/api/performances` | 공연 목록 | |
 | GET | `/api/performances/{performanceId}/showtimes` | 공연의 회차 목록 | |
@@ -145,7 +148,7 @@ Testcontainers가 MySQL 컨테이너를 띄우므로 Docker가 켜져 있어야 
 ```
 src/main/java/com/ticketflow
 ├── domain
-│   ├── member        회원, X-Member-Id 해석
+│   ├── member        회원, 가입·로그인, 토큰 발급
 │   ├── performance   공연·회차·좌석
 │   └── booking       선점·결제·예매, 좌석 점유 락
 └── global            설정, 예외 처리, 로컬 초기 데이터

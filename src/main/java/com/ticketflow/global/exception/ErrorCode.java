@@ -34,9 +34,15 @@ public enum ErrorCode {
     SHOWTIME_ALREADY_STARTED(HttpStatus.CONFLICT, "회차가 이미 시작되어 예매를 취소할 수 없습니다."),
 
 
-    MEMBER_ID_MISSING(HttpStatus.UNAUTHORIZED, "회원을 선택해 주세요."),
-    MEMBER_ID_INVALID(HttpStatus.UNAUTHORIZED, "회원 식별 값이 올바르지 않습니다."),
-    MEMBER_NOT_FOUND(HttpStatus.UNAUTHORIZED, "존재하지 않는 회원입니다.");
+    AUTH_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
+    AUTH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요."),
+    AUTH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다. 다시 로그인해 주세요."),
+    LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    MEMBER_NOT_FOUND(HttpStatus.UNAUTHORIZED, "존재하지 않는 회원입니다."),
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입한 이메일입니다."),
+    INVALID_EMAIL(HttpStatus.BAD_REQUEST, "이메일 형식이 올바르지 않습니다."),
+    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호는 8자 이상이어야 합니다."),
+    INVALID_MEMBER_NAME(HttpStatus.BAD_REQUEST, "이름은 1자 이상 50자 이하로 입력해 주세요.");
 
     private final HttpStatus status;
     private final String message;

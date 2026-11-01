@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -28,19 +29,22 @@ public class LocalDataInitializer implements ApplicationRunner {
 
     private static final List<String> SEAT_ROWS = List.of("A", "B", "C", "D", "E");
     private static final int SEATS_PER_ROW = 10;
+    private static final String MEMBER_PASSWORD = "password1234";
 
     private final Clock clock;
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
     private final PerformanceRepository performanceRepository;
     private final ShowtimeRepository showtimeRepository;
     private final SeatRepository seatRepository;
 
     @Override
     public void run(ApplicationArguments args) {
+        String passwordHash = passwordEncoder.encode(MEMBER_PASSWORD);
         memberRepository.saveAll(List.of(
-                new Member("회원1"),
-                new Member("회원2"),
-                new Member("회원3")
+                new Member("member1@ticketflow.local", passwordHash, "회원1"),
+                new Member("member2@ticketflow.local", passwordHash, "회원2"),
+                new Member("member3@ticketflow.local", passwordHash, "회원3")
         ));
 
 

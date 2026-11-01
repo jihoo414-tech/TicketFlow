@@ -2,6 +2,7 @@ package com.ticketflow.concurrency;
 
 import com.jayway.jsonpath.JsonPath;
 import com.ticketflow.TestClock;
+import com.ticketflow.fixture.AuthHeaders;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -43,6 +45,9 @@ class HoldCancellationConcurrencyTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    AuthHeaders authHeaders;
 
     @Autowired
     TestClock testClock;
@@ -138,7 +143,7 @@ class HoldCancellationConcurrencyTest {
 
     private int payStatus(HoldFixture fixture, Long holdId) throws Exception {
         return mockMvc.perform(post("/api/holds/{holdId}/payment", holdId)
-                        .header("X-Member-Id", fixture.member().getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId())))
                 .andReturn()
                 .getResponse()
                 .getStatus();
@@ -146,7 +151,7 @@ class HoldCancellationConcurrencyTest {
 
     private int cancelStatus(HoldFixture fixture, Long holdId) throws Exception {
         return mockMvc.perform(post("/api/holds/{holdId}/cancellation", holdId)
-                        .header("X-Member-Id", fixture.member().getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId())))
                 .andReturn()
                 .getResponse()
                 .getStatus();
@@ -162,7 +167,7 @@ class HoldCancellationConcurrencyTest {
 
     private Long hold(HoldFixture fixture) throws Exception {
         String body = mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", fixture.member().getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}

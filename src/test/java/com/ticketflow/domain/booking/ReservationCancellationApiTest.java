@@ -2,6 +2,8 @@ package com.ticketflow.domain.booking;
 
 import com.jayway.jsonpath.JsonPath;
 import com.ticketflow.TestClock;
+import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.TestMembers;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.member.entity.Member;
 import com.ticketflow.domain.member.repository.MemberRepository;
@@ -13,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,9 @@ class ReservationCancellationApiTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    AuthHeaders authHeaders;
 
     @Autowired
     TestClock testClock;
@@ -54,7 +60,7 @@ class ReservationCancellationApiTest {
         Long reservationId = pay(fixture.member(), hold(fixture.member(), fixture, fixture.seatIds()));
 
         mockMvc.perform(post("/api/reservations/{reservationId}/cancellation", reservationId)
-                        .header("X-Member-Id", fixture.member().getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reservationId))
                 .andExpect(jsonPath("$.status").value("RESERVATION_CANCELLED"));
@@ -63,12 +69,12 @@ class ReservationCancellationApiTest {
     @Test
     void 다른_회원의_예매를_취소하면_실패한다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
-        Member otherMember = memberRepository.save(new Member("회원2"));
+        Member otherMember = memberRepository.save(TestMembers.member("회원2"));
         testClock.setTo(BOOKING_OPEN_AT);
         Long reservationId = pay(fixture.member(), hold(fixture.member(), fixture, fixture.seatIds()));
 
         mockMvc.perform(post("/api/reservations/{reservationId}/cancellation", reservationId)
-                        .header("X-Member-Id", otherMember.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(otherMember.getId())))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("RESERVATION_NOT_OWNED"));
     }
@@ -82,7 +88,7 @@ class ReservationCancellationApiTest {
         testClock.setTo(fixture.showtime().getStartsAt());
 
         mockMvc.perform(post("/api/reservations/{reservationId}/cancellation", reservationId)
-                        .header("X-Member-Id", fixture.member().getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("SHOWTIME_ALREADY_STARTED"));
     }
@@ -97,7 +103,7 @@ class ReservationCancellationApiTest {
         testClock.setTo(fixture.showtime().getStartsAt());
 
         mockMvc.perform(post("/api/reservations/{reservationId}/cancellation", reservationId)
-                        .header("X-Member-Id", fixture.member().getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reservationId))
                 .andExpect(jsonPath("$.status").value("RESERVATION_CANCELLED"));
@@ -106,7 +112,7 @@ class ReservationCancellationApiTest {
     @Test
     void 취소된_예매의_좌석은_다른_회원이_선점할_수_있다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
-        Member otherMember = memberRepository.save(new Member("회원2"));
+        Member otherMember = memberRepository.save(TestMembers.member("회원2"));
         testClock.setTo(BOOKING_OPEN_AT);
         Long reservationId = pay(fixture.member(), hold(fixture.member(), fixture, fixture.seatIds()));
 
@@ -129,7 +135,7 @@ class ReservationCancellationApiTest {
     @Test
     void 여러_좌석의_예매를_취소하면_모든_좌석이_함께_열린다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(2);
-        Member otherMember = memberRepository.save(new Member("회원2"));
+        Member otherMember = memberRepository.save(TestMembers.member("회원2"));
         testClock.setTo(BOOKING_OPEN_AT);
         Long reservationId = pay(fixture.member(), hold(fixture.member(), fixture, fixture.seatIds()));
 
@@ -143,20 +149,20 @@ class ReservationCancellationApiTest {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
 
         mockMvc.perform(post("/api/reservations/{reservationId}/cancellation", Long.MAX_VALUE)
-                        .header("X-Member-Id", fixture.member().getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId())))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("RESERVATION_NOT_FOUND"));
     }
 
     private void cancel(Member member, Long reservationId) throws Exception {
         mockMvc.perform(post("/api/reservations/{reservationId}/cancellation", reservationId)
-                        .header("X-Member-Id", member.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId())))
                 .andExpect(status().isOk());
     }
 
     private Long pay(Member member, Long holdId) throws Exception {
         String body = mockMvc.perform(post("/api/holds/{holdId}/payment", holdId)
-                        .header("X-Member-Id", member.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId())))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
@@ -166,7 +172,7 @@ class ReservationCancellationApiTest {
 
     private Long hold(Member member, HoldFixture fixture, List<Long> seatIds) throws Exception {
         String body = mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                        .header("X-Member-Id", member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}

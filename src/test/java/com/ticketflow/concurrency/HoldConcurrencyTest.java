@@ -1,6 +1,8 @@
 package com.ticketflow.concurrency;
 
 import com.ticketflow.TestClock;
+import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.TestMembers;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
@@ -17,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -42,6 +45,9 @@ class HoldConcurrencyTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    AuthHeaders authHeaders;
 
     @Autowired
     TestClock testClock;
@@ -83,7 +89,7 @@ class HoldConcurrencyTest {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
 
         List<Member> members = memberRepository.saveAll(IntStream.rangeClosed(1, MEMBER_COUNT)
-                .mapToObj(memberNo -> new Member("동시회원" + memberNo))
+                .mapToObj(memberNo -> TestMembers.member("동시회원" + memberNo))
                 .toList());
 
 
@@ -101,9 +107,9 @@ class HoldConcurrencyTest {
     void 여러_회원이_일부만_겹치는_좌석_묶음을_동시에_선점하면_한_명만_선점한다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(3);
         List<Long> seatIds = fixture.seatIds();
-        Member memberA = memberRepository.save(new Member("회원A"));
-        Member memberB = memberRepository.save(new Member("회원B"));
-        Member memberC = memberRepository.save(new Member("회원C"));
+        Member memberA = memberRepository.save(TestMembers.member("회원A"));
+        Member memberB = memberRepository.save(TestMembers.member("회원B"));
+        Member memberC = memberRepository.save(TestMembers.member("회원C"));
         testClock.setTo(BOOKING_OPEN_AT);
 
         List<Integer> statuses = holdConcurrently(fixture, List.of(
@@ -149,7 +155,7 @@ class HoldConcurrencyTest {
         return () -> {
             start.await();
             return mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
-                            .header("X-Member-Id", attempt.member().getId())
+                            .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(attempt.member().getId()))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"seatIds": %s}
