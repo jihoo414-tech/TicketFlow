@@ -7,6 +7,16 @@ import { toApiError } from './useLoad';
 
 export const MAX_SEATS = 4;
 
+function seatLimitNotice(seatLimit: number) {
+  if (seatLimit === 0) {
+    return `이 회차는 이미 ${MAX_SEATS}석을 예매해 더 선택할 수 없습니다.`;
+  }
+  if (seatLimit < MAX_SEATS) {
+    return `이미 예매한 좌석이 있어 이 회차는 ${seatLimit}석까지 선택할 수 있습니다.`;
+  }
+  return `좌석은 최대 ${MAX_SEATS}석까지 선택할 수 있습니다.`;
+}
+
 function useNow(intervalMs: number) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -28,6 +38,7 @@ export function useSeatBooking(showtimeId: string) {
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [paying, setPaying] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [seatLimit, setSeatLimit] = useState(MAX_SEATS);
   const [notice, setNotice] = useState<string | null>(null);
   const dismissNotice = useCallback(() => setNotice(null), []);
 
@@ -46,6 +57,22 @@ export function useSeatBooking(showtimeId: string) {
   useEffect(() => {
     reloadSeats();
   }, [reloadSeats]);
+
+  const reloadSeatLimit = useCallback(async () => {
+    if (memberId === null) {
+      setSeatLimit(MAX_SEATS);
+      return;
+    }
+    try {
+      setSeatLimit((await api.remainingSeatCount(showtimeId)).remainingSeatCount);
+    } catch {
+      setSeatLimit(MAX_SEATS);
+    }
+  }, [memberId, showtimeId]);
+
+  useEffect(() => {
+    reloadSeatLimit();
+  }, [reloadSeatLimit]);
 
   useEffect(() => {
     setHold(loadStoredHold(memberId, showtimeId, Date.now()));
@@ -66,8 +93,8 @@ export function useSeatBooking(showtimeId: string) {
     const next = new Set(selectedIds);
     if (next.has(seat.id)) {
       next.delete(seat.id);
-    } else if (next.size >= MAX_SEATS) {
-      setNotice(`좌석은 최대 ${MAX_SEATS}석까지 선택할 수 있습니다.`);
+    } else if (next.size >= seatLimit) {
+      setNotice(seatLimitNotice(seatLimit));
       return;
     } else {
       next.add(seat.id);
@@ -89,6 +116,9 @@ export function useSeatBooking(showtimeId: string) {
       if (apiError.code === 'SEAT_ALREADY_HELD') {
         await reloadSeats();
       }
+      if (apiError.code === 'SEAT_LIMIT_EXCEEDED') {
+        await reloadSeatLimit();
+      }
     } finally {
       setHolding(false);
     }
@@ -102,7 +132,7 @@ export function useSeatBooking(showtimeId: string) {
     try {
       setReservation(await api.pay(hold.id));
       removeStoredHold(memberId, showtimeId);
-      await reloadSeats();
+      await Promise.all([reloadSeats(), reloadSeatLimit()]);
     } catch (error) {
       const apiError = toApiError(error);
       setNotice(apiError.message);
@@ -140,6 +170,6 @@ export function useSeatBooking(showtimeId: string) {
     setReservation(null);
   };
 
-  return { now, holdExpired, seats, seatError, selectedIds, myHoldSeatIds, hold, holding, reservation, paying, cancelling, notice,
+  return { now, holdExpired, seats, seatError, selectedIds, seatLimit, myHoldSeatIds, hold, holding, reservation, paying, cancelling, notice,
     dismissNotice, reloadSeats, toggleSeat, submitHold, submitPay, cancelHold, resetHold };
 }

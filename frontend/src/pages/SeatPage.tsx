@@ -22,7 +22,7 @@ function sortSeats(seats: Seat[]): Seat[] {
 export default function SeatPage() {
   const { performanceId = '', showtimeId = '' } = useParams();
   const info = useLoad(() => loadShowtime(performanceId, showtimeId), [performanceId, showtimeId]);
-  const { now, holdExpired, seats, seatError, selectedIds, myHoldSeatIds, hold, holding, reservation, paying, cancelling, notice,
+  const { now, holdExpired, seats, seatError, selectedIds, seatLimit, myHoldSeatIds, hold, holding, reservation, paying, cancelling, notice,
     dismissNotice, reloadSeats, toggleSeat, submitHold, submitPay, cancelHold, resetHold } = useSeatBooking(showtimeId);
 
   if (info.status === 'loading') {
@@ -70,6 +70,7 @@ export default function SeatPage() {
         reservation={reservation}
         now={now}
         selectedSeats={selectedSeats}
+        seatLimit={seatLimit}
         bookingOpen={bookingOpen}
         bookingOpenAt={showtime.bookingOpenAt}
         holding={holding}

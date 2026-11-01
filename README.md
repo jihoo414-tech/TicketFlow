@@ -130,6 +130,7 @@ Testcontainers가 MySQL 컨테이너를 띄우므로 Docker가 켜져 있어야 
 | GET | `/api/performances/{performanceId}/showtimes` | 공연의 회차 목록 | |
 | GET | `/api/showtimes/{showtimeId}/seats` | 회차의 좌석 상태 (회차별로 1초 동안 같은 응답을 공유한다) | |
 | POST | `/api/showtimes/{showtimeId}/holds` | 선점 (`{"seatIds": [1, 2]}`) | ✓ |
+| GET | `/api/members/me/showtimes/{showtimeId}/remaining-seat-count` | 회차에서 더 선점할 수 있는 좌석 수(4 − 예매한 좌석 수) | ✓ |
 | POST | `/api/holds/{holdId}/cancellation` | 선점 취소 | ✓ |
 | POST | `/api/holds/{holdId}/payment` | 결제 → 예매 | ✓ |
 | GET | `/api/members/me/reservations` | 내 예매 목록 | ✓ |

@@ -3,12 +3,14 @@ package com.ticketflow.domain.booking.controller;
 import com.ticketflow.domain.booking.dto.HoldCancellationResponse;
 import com.ticketflow.domain.booking.dto.HoldRequest;
 import com.ticketflow.domain.booking.dto.HoldResponse;
+import com.ticketflow.domain.booking.dto.RemainingSeatCountResponse;
 import com.ticketflow.domain.booking.service.HoldService;
 import com.ticketflow.domain.member.controller.CurrentMemberId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,5 +37,13 @@ public class HoldController {
         HoldCancellationResponse holdCancellationResponse = holdService.cancel(memberId, holdId);
 
         return ResponseEntity.ok(holdCancellationResponse);
+    }
+
+    @GetMapping("/api/members/me/showtimes/{showtimeId}/remaining-seat-count")
+    public ResponseEntity<RemainingSeatCountResponse> getRemainingSeatCount(@CurrentMemberId Long memberId,
+                                                                            @PathVariable Long showtimeId) {
+        RemainingSeatCountResponse remainingSeatCountResponse = holdService.getRemainingSeatCount(memberId, showtimeId);
+
+        return ResponseEntity.ok(remainingSeatCountResponse);
     }
 }
