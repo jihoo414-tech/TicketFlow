@@ -4991,3 +4991,559 @@ tps나 rps도 측정할 수 있어?
 
 응 #36 코멘트 남기고 닫아줘 그리고 기존 이슈들 중 바뀐 사항들 있으면 코멘트말고, 내용을 수정해줘 전체적인 이 프로젝트의 문서나 이슈가 지금 진행하는 방향과 일치하도록 수정해줘
 
+## 2026-11-01 14:43
+
+오케이 그럼 다음으로 진행할 사항은 뭐야?
+
+## 2026-11-01 14:43
+
+응 750석이랑 1000석 160명 측정해줘 그리고 그 뒤 이제 옮겨가는게 좋을 것 같아 aws 배포로말이야 어때?
+
+## 2026-11-01 14:47
+
+<task-notification>
+<task-id>bxq0f6dvm</task-id>
+<tool-use-id>toolu_01L8LPr7Mc2YJ2Bag8StY1HM</tool-use-id>
+<output-file>C:\Users\sksms\AppData\Local\Temp\claude\C--Users-sksms-Desktop-ai-ticketflowwithai2\411ef0f5-0b4d-47a7-8542-72a8c236de31\tasks\bxq0f6dvm.output</output-file>
+<status>completed</status>
+<summary>Background command "Measure 750 and 1000 seats at 160 members" completed (exit code 0)</summary>
+</task-notification>
+
+## 2026-11-01 16:16
+
+너가 추천한대로 가고싶은데 k6부하를 로컬에서 서버로 보낼수는 없나?
+
+## 2026-11-01 16:24
+
+서버에서는 요청을 받고 응답을 할떄까지의 시간을 응답시간으로 보는거야?
+
+## 2026-11-01 16:25
+
+응 그럼 서버쪽에서 측정하는게 좋은 것 같네. 그리고 배포 전 시큐리티를 도입하려고하는데 어떻게 생각해?
+
+## 2026-11-01 16:42
+
+오케이 이번에는 부하 측정용으로 갈게
+
+## 2026-11-01 16:47
+
+aws에서 지표 수집을 좀 자동화할수는 없나?
+
+## 2026-11-01 16:49
+
+응 콘솔로 진행할게. 그니까 지금 aws로 올리면, 지표를 수집할 수 있도록 로컬에서 세팅을 만들고 그 다음 aws에 배포하는 식으로 간다는거지?
+
+## 2026-11-01 16:51
+
+아 오케이 이해됐다. 근데 run.py --target aws 모드는 뭐야?
+
+## 2026-11-01 16:54
+
+옵션으로 갈게 그럼 너는 이제부터 아까 말했던 1,2에 해당하는 작업 수행해주고, 나에게 aws 배포 어떻게할 지 알려줘 근데 이미 ec2와 rds가 같은 스펙으로 올라가있긴해서 보안그룹이나 그런것만 바꾸면 될거야
+
+## 2026-11-01 17:24
+
+ssh -i <키.pem> ec2-user@<EC2 IP>
+
+powershell에서 하라는거지?"C:\Users\sksms\.ssh\study-key.pem"
+여기 있는데 이거 어케하면 되느닞 알려줘
+
+## 2026-11-01 17:26
+
+./gradlew bootJar
+이거는 프로젝트 폴더에서 수행해야하는거지?
+
+## 2026-11-01 17:29
+
+[ec2-user@ip-10-0-1-154 ~]$ docker load -i app.tar
+Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+
+이렇게 나와
+
+## 2026-11-01 17:31
+
+로드 됐어.
+
+## 2026-11-01 17:33
+
+<pasted_content id="a0b7">
+up: ignoring JPA class transformer
+2026-11-01T08:33:11.308Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+[ec2-user@ip-10-0-1-154 ~]$ docker logs --tail 30 ticketflow-app
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.createService(AbstractServiceRegistryImpl.java:273) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.initializeService(AbstractServiceRegistryImpl.java:235) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.getService(AbstractServiceRegistryImpl.java:212) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.model.relational.Database.<init>(Database.java:44) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.internal.InFlightMetadataCollectorImpl.getDatabase(InFlightMetadataCollectorImpl.java:251) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.internal.InFlightMetadataCollectorImpl.<init>(InFlightMetadataCollectorImpl.java:203) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.model.process.spi.MetadataBuildingProcess.complete(MetadataBuildingProcess.java:180) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl.metadata(EntityManagerFactoryBuilderImpl.java:1388) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl.populateSessionFactoryBuilder(EntityManagerFactoryBuilderImpl.java:1468) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl.build(EntityManagerFactoryBuilderImpl.java:1450) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.springframework.orm.jpa.vendor.SpringHibernateJpaPersistenceProvider.createContainerEntityManagerFactory(SpringHibernateJpaPersistenceProvider.java:93) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean.createNativeEntityManagerFactory(LocalContainerEntityManagerFactoryBean.java:443) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.buildNativeEntityManagerFactory(AbstractEntityManagerFactoryBean.java:436) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.afterPropertiesSet(AbstractEntityManagerFactoryBean.java:411) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean.afterPropertiesSet(LocalContainerEntityManagerFactoryBean.java:419) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1862) ~[spring-beans-7.0.10.jar!/:7.0.10]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1811) ~[spring-beans-7.0.10.jar!/:7.0.10]
+        ... 20 common frames omitted
+Caused by: org.hibernate.HibernateException: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+        at org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl.determineDialect(DialectFactoryImpl.java:190) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl.buildDialect(DialectFactoryImpl.java:86) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentWithDefaults(JdbcEnvironmentInitiator.java:200) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentUsingJdbcMetadata(JdbcEnvironmentInitiator.java:452) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironment(JdbcEnvironmentInitiator.java:143) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.initiateService(JdbcEnvironmentInitiator.java:120) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.initiateService(JdbcEnvironmentInitiator.java:80) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.registry.internal.StandardServiceRegistryImpl.initiateService(StandardServiceRegistryImpl.java:133) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.createService(AbstractServiceRegistryImpl.java:260) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        ... 36 common frames omitted
+</pasted_content id="a0b7">
+
+이렇게 나왔어
+
+## 2026-11-01 17:34
+
+<pasted_content id="a0b7">
+[ec2-user@ip-10-0-1-154 ~]$ docker logs ticketflow-app 2>&1 | grep -E "Communications link|Access denied|Unknown database|UnknownHost|timed out|Connection refused" | head -5
+2026-11-01T08:33:32.173Z  WARN 1 --- [           main] org.hibernate.orm.jdbc.error             : Communications link failure
+org.hibernate.exception.JDBCConnectionException: Unable to obtain isolated JDBC connection [Communications link failure
+Caused by: com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+Caused by: java.net.ConnectException: Connection refused (connect failed)
+</pasted_content id="a0b7">
+
+## 2026-11-01 17:36
+
+<pasted_content id="a0b7">
+FAIL
+[ec2-user@ip-10-0-1-154 ~]$ timeout 3 bash -c '</dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com
+/3306' && echo OK || echo FAIL
+bash: line 1: /dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com: No such file or directory
+bash: line 2: /3306: No such file or directory
+FAIL
+</pasted_content id="a0b7">
+
+## 2026-11-01 17:36
+
+[ec2-user@ip-10-0-1-154 ~]$ timeout 3 bash -c '</dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com/3306' && echo OK || echo FAIL
+OK
+
+## 2026-11-01 17:36
+
+한국어로 설명해줘
+
+## 2026-11-01 17:37
+
+app.env 다시 작성할게 지우고 다시 작성할 수 있도록 해줘
+
+## 2026-11-01 17:39
+
+[ec2-user@ip-10-0-1-154 ~]$ docker run -d --name ticketflow-app -p 8080:8080 --memory 850m --env-file app.env ticketflow-aws-app
+a6e69b01468e235f6f6b99e7d947e00de2adb5039daf4e2ec19ec186c23df8a3
+docker: Error response from daemon: driver failed programming external connectivity on endpoint ticketflow-app (bdf55b25dda6a96f917c70ced97dece3cfea762471046b6ff1fed1d1c7e011f7): Error starting userland proxy: listen tcp4 0.0.0.0:8080: bind: address already in use.
+
+## 2026-11-01 17:40
+
+<pasted_content id="a0b7">
+Picked up JAVA_TOOL_OPTIONS: -Xmx512m
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.2)
+
+2026-11-01T08:33:06.083Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : Starting TicketflowApplication v0.0.1-SNAPSHOT using Java 21.0.13 with PID 1 (/app.jar started by root in /)
+2026-11-01T08:33:06.088Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : The following 1 profile is active: "perf"
+2026-11-01T08:33:08.201Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-11-01T08:33:08.331Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 113 ms. Found 7 JPA repository interfaces.
+2026-11-01T08:33:09.707Z  INFO 1 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-11-01T08:33:09.741Z  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-11-01T08:33:09.741Z  INFO 1 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.27]
+2026-11-01T08:33:09.795Z  INFO 1 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 3535 ms
+2026-11-01T08:33:10.364Z  INFO 1 --- [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-11-01T08:33:10.453Z  INFO 1 --- [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.13.Final
+2026-11-01T08:33:11.240Z  INFO 1 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-11-01T08:33:11.308Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+[ec2-user@ip-10-0-1-154 ~]$ docker logs --tail 30 ticketflow-app
+Picked up JAVA_TOOL_OPTIONS: -Xmx512m
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.2)
+
+2026-11-01T08:33:06.083Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : Starting TicketflowApplication v0.0.1-SNAPSHOT using Java 21.0.13 with PID 1 (/app.jar started by root in /)
+2026-11-01T08:33:06.088Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : The following 1 profile is active: "perf"
+2026-11-01T08:33:08.201Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-11-01T08:33:08.331Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 113 ms. Found 7 JPA repository interfaces.
+2026-11-01T08:33:09.707Z  INFO 1 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-11-01T08:33:09.741Z  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-11-01T08:33:09.741Z  INFO 1 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.27]
+2026-11-01T08:33:09.795Z  INFO 1 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 3535 ms
+2026-11-01T08:33:10.364Z  INFO 1 --- [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-11-01T08:33:10.453Z  INFO 1 --- [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.13.Final
+2026-11-01T08:33:11.240Z  INFO 1 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-11-01T08:33:11.308Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+[ec2-user@ip-10-0-1-154 ~]$ docker logs --tail 30 ticketflow-app
+Picked up JAVA_TOOL_OPTIONS: -Xmx512m
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.2)
+
+2026-11-01T08:33:06.083Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : Starting TicketflowApplication v0.0.1-SNAPSHOT using Java 21.0.13 with PID 1 (/app.jar started by root in /)
+2026-11-01T08:33:06.088Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : The following 1 profile is active: "perf"
+2026-11-01T08:33:08.201Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-11-01T08:33:08.331Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 113 ms. Found 7 JPA repository interfaces.
+2026-11-01T08:33:09.707Z  INFO 1 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-11-01T08:33:09.741Z  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-11-01T08:33:09.741Z  INFO 1 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.27]
+2026-11-01T08:33:09.795Z  INFO 1 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 3535 ms
+2026-11-01T08:33:10.364Z  INFO 1 --- [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-11-01T08:33:10.453Z  INFO 1 --- [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.13.Final
+2026-11-01T08:33:11.240Z  INFO 1 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-11-01T08:33:11.308Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+[ec2-user@ip-10-0-1-154 ~]$ docker logs --tail 30 ticketflow-app
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.createService(AbstractServiceRegistryImpl.java:273) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.initializeService(AbstractServiceRegistryImpl.java:235) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.getService(AbstractServiceRegistryImpl.java:212) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.model.relational.Database.<init>(Database.java:44) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.internal.InFlightMetadataCollectorImpl.getDatabase(InFlightMetadataCollectorImpl.java:251) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.internal.InFlightMetadataCollectorImpl.<init>(InFlightMetadataCollectorImpl.java:203) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.model.process.spi.MetadataBuildingProcess.complete(MetadataBuildingProcess.java:180) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl.metadata(EntityManagerFactoryBuilderImpl.java:1388) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl.populateSessionFactoryBuilder(EntityManagerFactoryBuilderImpl.java:1468) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl.build(EntityManagerFactoryBuilderImpl.java:1450) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.springframework.orm.jpa.vendor.SpringHibernateJpaPersistenceProvider.createContainerEntityManagerFactory(SpringHibernateJpaPersistenceProvider.java:93) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean.createNativeEntityManagerFactory(LocalContainerEntityManagerFactoryBean.java:443) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.buildNativeEntityManagerFactory(AbstractEntityManagerFactoryBean.java:436) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.afterPropertiesSet(AbstractEntityManagerFactoryBean.java:411) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean.afterPropertiesSet(LocalContainerEntityManagerFactoryBean.java:419) ~[spring-orm-7.0.10.jar!/:7.0.10]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1862) ~[spring-beans-7.0.10.jar!/:7.0.10]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1811) ~[spring-beans-7.0.10.jar!/:7.0.10]
+        ... 20 common frames omitted
+Caused by: org.hibernate.HibernateException: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+        at org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl.determineDialect(DialectFactoryImpl.java:190) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl.buildDialect(DialectFactoryImpl.java:86) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentWithDefaults(JdbcEnvironmentInitiator.java:200) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentUsingJdbcMetadata(JdbcEnvironmentInitiator.java:452) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironment(JdbcEnvironmentInitiator.java:143) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.initiateService(JdbcEnvironmentInitiator.java:120) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.initiateService(JdbcEnvironmentInitiator.java:80) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.registry.internal.StandardServiceRegistryImpl.initiateService(StandardServiceRegistryImpl.java:133) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.createService(AbstractServiceRegistryImpl.java:260) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        ... 36 common frames omitted
+
+[ec2-user@ip-10-0-1-154 ~]$ docker logs ticketflow-app 2>&1 | grep -E "Communications link|Access denied|Unknown database|UnknownHost|timed out|Connection refused" | head -5
+2026-11-01T08:33:32.173Z  WARN 1 --- [           main] org.hibernate.orm.jdbc.error             : Communications link failure
+org.hibernate.exception.JDBCConnectionException: Unable to obtain isolated JDBC connection [Communications link failure
+Caused by: com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+Caused by: java.net.ConnectException: Connection refused (connect failed)
+[ec2-user@ip-10-0-1-154 ~]$ docker inspect ticketflow-app --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E "MYSQL_HOST|MYSQL_PORT|MYSQL_DATABASE"
+MYSQL_HOST=study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com
+MYSQL_PORT=3306
+MYSQL_DATABASE=ticketflowwithai
+[ec2-user@ip-10-0-1-154 ~]$ timeout 3 bash -c '</dev/tcp/<RDS 엔드포인트>/3306' && echo OK || echo FAIL
+bash: line 1: /dev/tcp/: No such file or directory
+FAIL
+[ec2-user@ip-10-0-1-154 ~]$ timeout 3 bash -c '</dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com
+/3306' && echo OK || echo FAIL
+bash: line 1: /dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com: No such file or directory
+bash: line 2: /3306: No such file or directory
+FAIL
+[ec2-user@ip-10-0-1-154 ~]$ timeout 3 bash -c '</dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com
+/3306' && echo OK || echo FAIL
+bash: line 1: /dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com: No such file or directory
+bash: line 2: /3306: No such file or directory
+FAIL
+[ec2-user@ip-10-0-1-154 ~]$ timeout 3 bash -c '</dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com
+/3306' && echo OK || echo FAIL
+bash: line 1: /dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com: No such file or directory
+bash: line 2: /3306: No such file or directory
+FAIL
+[ec2-user@ip-10-0-1-154 ~]$ timeout 3 bash -c '</dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com/3306' && echo OK || echo FAIL
+OK
+[ec2-user@ip-10-0-1-154 ~]$ grep -v PASSWORD app.env
+SPRING_PROFILES_ACTIVE=perf
+JAVA_TOOL_OPTIONS=-Xmx512m
+MYSQL_HOST=study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com
+MYSQL_PORT=3306
+MYSQL_DATABASE=ticketflowwithai
+MYSQL_USER=jihoo
+[ec2-user@ip-10-0-1-154 ~]$ timeout 3 bash -c '</dev/tcp/study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com/3306' && echo OK || echo FAILdocker rm -f ticketflow-app
+OK
+[ec2-user@ip-10-0-1-154 ~]$ docker rm -f ticketflow-app
+ticketflow-app
+[ec2-user@ip-10-0-1-154 ~]$ docker rm -f ticketflow-app
+Error response from daemon: No such container: ticketflow-app
+[ec2-user@ip-10-0-1-154 ~]$ rm -f app.env
+[ec2-user@ip-10-0-1-154 ~]$ docker rm -f ticketflow-app
+Error response from daemon: No such container: ticketflow-app
+[ec2-user@ip-10-0-1-154 ~]$ cat > app.env <<'EOF'
+SPRING_PROFILES_ACTIVE=perf
+JAVA_TOOL_OPTIONS=-Xmx512m
+MYSQL_HOST=study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com
+MYSQL_PORT=3306
+MYSQL_DATABASE=ticketflowwithai
+MYSQL_USER=ticketflowwithai
+MYSQL_PASSWORD=000414
+EOF
+[ec2-user@ip-10-0-1-154 ~]$ grep -v PASSWORD app.env
+SPRING_PROFILES_ACTIVE=perf
+JAVA_TOOL_OPTIONS=-Xmx512m
+MYSQL_HOST=study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com
+MYSQL_PORT=3306
+MYSQL_DATABASE=ticketflowwithai
+MYSQL_USER=ticketflowwithai
+[ec2-user@ip-10-0-1-154 ~]$ docker run -d --name ticketflow-app -p 8080:8080 --memory 850m --env-file app.env ticketflow-aws-app
+a6e69b01468e235f6f6b99e7d947e00de2adb5039daf4e2ec19ec186c23df8a3
+docker: Error response from daemon: driver failed programming external connectivity on endpoint ticketflow-app (bdf55b25dda6a96f917c70ced97dece3cfea762471046b6ff1fed1d1c7e011f7): Error starting userland proxy: listen tcp4 0.0.0.0:8080: bind: address already in use.
+[ec2-user@ip-10-0-1-154 ~]$ docker rm -f ticketflow-app
+ticketflow-app
+[ec2-user@ip-10-0-1-154 ~]$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+[ec2-user@ip-10-0-1-154 ~]$ docker run -d --name ticketflow-app -p 8081:8080 --memory 850m --env-file app.env ticketflow-aws-app
+b20cf9b4908cb7241e954d96d692564275f52f22d75f3d5b7c9c1cb67b541a59
+[ec2-user@ip-10-0-1-154 ~]$ docker logs --tail 15 ticketflow-app
+Picked up JAVA_TOOL_OPTIONS: -Xmx512m
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.2)
+
+2026-11-01T08:39:57.495Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : Starting TicketflowApplication v0.0.1-SNAPSHOT using Java 21.0.13 with PID 1 (/app.jar started by root in /)
+2026-11-01T08:39:57.507Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : The following 1 profile is active: "perf"
+2026-11-01T08:39:59.804Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-11-01T08:39:59.941Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 114 ms. Found 7 JPA repository interfaces.
+[ec2-user@ip-10-0-1-154 ~]$ docker logs --tail 15 ticketflow-app
+
+ :: Spring Boot ::                (v4.1.2)
+
+2026-11-01T08:39:57.495Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : Starting TicketflowApplication v0.0.1-SNAPSHOT using Java 21.0.13 with PID 1 (/app.jar started by root in /)
+2026-11-01T08:39:57.507Z  INFO 1 --- [           main] com.ticketflow.TicketflowApplication     : The following 1 profile is active: "perf"
+2026-11-01T08:39:59.804Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-11-01T08:39:59.941Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 114 ms. Found 7 JPA repository interfaces.
+2026-11-01T08:40:02.411Z  INFO 1 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-11-01T08:40:02.457Z  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-11-01T08:40:02.458Z  INFO 1 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.27]
+2026-11-01T08:40:02.563Z  INFO 1 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 4877 ms
+2026-11-01T08:40:03.388Z  INFO 1 --- [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-11-01T08:40:03.563Z  INFO 1 --- [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.13.Final
+2026-11-01T08:40:04.514Z  INFO 1 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-11-01T08:40:04.584Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+[ec2-user@ip-10-0-1-154 ~]$ docker logs --tail 15 ticketflow-app
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1862) ~[spring-beans-7.0.10.jar!/:7.0.10]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1811) ~[spring-beans-7.0.10.jar!/:7.0.10]
+        ... 20 common frames omitted
+Caused by: org.hibernate.HibernateException: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+        at org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl.determineDialect(DialectFactoryImpl.java:190) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl.buildDialect(DialectFactoryImpl.java:86) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentWithDefaults(JdbcEnvironmentInitiator.java:200) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentUsingJdbcMetadata(JdbcEnvironmentInitiator.java:452) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironment(JdbcEnvironmentInitiator.java:143) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.initiateService(JdbcEnvironmentInitiator.java:120) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.initiateService(JdbcEnvironmentInitiator.java:80) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.registry.internal.StandardServiceRegistryImpl.initiateService(StandardServiceRegistryImpl.java:133) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.createService(AbstractServiceRegistryImpl.java:260) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        ... 36 common frames omitted
+
+[ec2-user@ip-10-0-1-154 ~]$ docker logs --tail 15 ticketflow-app
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1862) ~[spring-beans-7.0.10.jar!/:7.0.10]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1811) ~[spring-beans-7.0.10.jar!/:7.0.10]
+        ... 20 common frames omitted
+Caused by: org.hibernate.HibernateException: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+        at org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl.determineDialect(DialectFactoryImpl.java:190) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl.buildDialect(DialectFactoryImpl.java:86) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentWithDefaults(JdbcEnvironmentInitiator.java:200) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentUsingJdbcMetadata(JdbcEnvironmentInitiator.java:452) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironment(JdbcEnvironmentInitiator.java:143) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.initiateService(JdbcEnvironmentInitiator.java:120) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.initiateService(JdbcEnvironmentInitiator.java:80) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.boot.registry.internal.StandardServiceRegistryImpl.initiateService(StandardServiceRegistryImpl.java:133) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        at org.hibernate.service.internal.AbstractServiceRegistryImpl.createService(AbstractServiceRegistryImpl.java:260) ~[hibernate-core-7.4.13.Final.jar!/:7.4.13.Final]
+        ... 36 common frames omitted
+</pasted_content id="a0b7">
+
+ 
+
+왜이러지
+
+## 2026-11-01 17:41
+
+<pasted_content id="a0b7">
+[ec2-user@ip-10-0-1-154 ~]$ docker logs ticketflow-app 2>&1 | grep -E "Caused by|Access denied|Unknown database|refused|timed out" | head -6
+2026-11-01T08:40:06.659Z  WARN 1 --- [           main] org.hibernate.orm.jdbc.error             : Access denied for user 'ticketflowwithai'@'10.0.1.154' (using password: YES)
+org.hibernate.exception.AuthException: Unable to obtain isolated JDBC connection [Access denied for user 'ticketflowwithai'@'10.0.1.154' (using password: YES)] [n/a]
+Caused by: java.sql.SQLException: Access denied for user 'ticketflowwithai'@'10.0.1.154' (using password: YES)
+Caused by: org.hibernate.service.spi.ServiceException: Unable to create requested service [org.hibernate.engine.jdbc.env.spi.JdbcEnvironment] due to: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+Caused by: org.hibernate.HibernateException: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+[ec2-user@ip-10-0-1-154 ~]$ docker run --rm busybox nc -zv -w 3 study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com 3306
+Unable to find image 'busybox:latest' locally
+latest: Pulling from library/busybox
+37bb94b0940b: Pull complete
+Digest: sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+Status: Downloaded newer image for busybox:latest
+study-db.cr6g6gykch4n.ap-northeast-2.rds.amazonaws.com (10.0.3.67:3306) open
+</pasted_content id="a0b7">
+
+## 2026-11-01 17:43
+
+<pasted_content id="a0b7">
+w-aws-app
+06fb80efffffed90928669498024d2dd525ea3a6284652fd15c3b68194ed517e
+[ec2-user@ip-10-0-1-154 ~]$ docker logs ticketflow-app 2>&1 | grep -E "Caused by|Access denied|Unknown database|Schema-validation|Started" | head -4
+[ec2-user@ip-10-0-1-154 ~]$ docker logs ticketflow-app 2>&1 | grep -E "Caused by|Access denied|Unknown database|Schema-validation|Started" | head -4
+2026-11-01T08:43:10.952Z  WARN 1 --- [           main] org.hibernate.orm.jdbc.error             : Access denied for user 'admin'@'10.0.1.154' (using password: YES)
+org.hibernate.exception.AuthException: Unable to obtain isolated JDBC connection [Access denied for user 'admin'@'10.0.1.154' (using password: YES)] [n/a]
+Caused by: java.sql.SQLException: Access denied for user 'admin'@'10.0.1.154' (using password: YES)
+Caused by: org.hibernate.service.spi.ServiceException: Unable to create requested service [org.hibernate.engine.jdbc.env.spi.JdbcEnvironment] due to: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+[ec2-user@ip-10-0-1-154 ~]$ docker logs ticketflow-app 2>&1 | grep -E "Caused by|Access denied|Unknown database|Schema-validation|Started" | head -4
+2026-11-01T08:43:10.952Z  WARN 1 --- [           main] org.hibernate.orm.jdbc.error             : Access denied for user 'admin'@'10.0.1.154' (using password: YES)
+org.hibernate.exception.AuthException: Unable to obtain isolated JDBC connection [Access denied for user 'admin'@'10.0.1.154' (using password: YES)] [n/a]
+Caused by: java.sql.SQLException: Access denied for user 'admin'@'10.0.1.154' (using password: YES)
+Caused by: org.hibernate.service.spi.ServiceException: Unable to create requested service [org.hibernate.engine.jdbc.env.spi.JdbcEnvironment] due to: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+</pasted_content id="a0b7">
+
+## 2026-11-01 17:45
+
+<pasted_content id="a0b7">
+[ec2-user@ip-10-0-1-154 ~]$ docker logs ticketflow-app 2>&1 | grep -E "Access denied|Unknown database|Schema-validation|Started" | head -3
+2026-11-01T08:45:09.045Z  WARN 1 --- [           main] org.hibernate.orm.jdbc.error             : Unknown database 'ticketflowwithai'
+org.hibernate.exception.SQLGrammarException: Unable to obtain isolated JDBC connection [Unknown database 'ticketflowwithai'] [n/a]
+Caused by: java.sql.SQLSyntaxErrorException: Unknown database 'ticketflowwithai'
+</pasted_content id="a0b7">
+
+서옥ㅇ한거지?
+
+## 2026-11-01 17:46
+
+왜 8081야?
+
+## 2026-11-01 17:46
+
+응 멈추는 법 알려줘
+
+## 2026-11-01 17:48
+
+[ec2-user@ip-10-0-1-154 ~]$ free -m
+               total        used        free      shared  buff/cache   available
+Mem:             913         306         313           0         293         467
+
+이렇게 나왔어. 이전에 사용하던 서비스는 아예 이 서버에서 지울 수 있을까?
+
+## 2026-11-01 17:50
+
+잠만 전에 쓰던거 이름만 알고있어 경로는 모르고 study-app.service야
+
+## 2026-11-01 17:51
+
+[ec2-user@ip-10-0-1-154 ~]$ systemctl cat study-app.service
+No files found for study-app.service.
+
+이렇게하면 지워진건가?
+
+## 2026-11-01 17:51
+
+8080은 다시 죽였는데 그래서 몰라
+
+## 2026-11-01 17:52
+
+<pasted_content id="a0b7">
+[ec2-user@ip-10-0-1-154 ~]$ systemctl list-unit-files --type=service --state=enabled
+UNIT FILE                            STATE   PRESET
+amazon-ssm-agent.service             enabled enabled
+atd.service                          enabled enabled
+auditd.service                       enabled enabled
+chrony-config.service                enabled enabled
+chronyd.service                      enabled enabled
+cloud-config.service                 enabled disabled
+cloud-final.service                  enabled disabled
+cloud-init-local.service             enabled disabled
+cloud-init.service                   enabled disabled
+dbus-broker.service                  enabled enabled
+docker.service                       enabled disabled
+getty@.service                       enabled enabled
+hibinit-agent.service                enabled enabled
+import-state.service                 enabled enabled
+irqbalance.service                   enabled enabled
+libstoragemgmt.service               enabled enabled
+nfs-convert.service                  enabled disabled
+rpmdb-rebuild.service                enabled enabled
+selinux-autorelabel-mark.service     enabled enabled
+sshd.service                         enabled enabled
+sssd.service                         enabled enabled
+sysstat.service                      enabled enabled
+systemd-boot-update.service          enabled enabled
+systemd-homed-activate.service       enabled disabled
+systemd-homed.service                enabled enabled
+systemd-network-generator.service    enabled enabled
+systemd-networkd-wait-online.service enabled disabled
+systemd-networkd.service             enabled enabled
+systemd-pstore.service               enabled enabled
+systemd-resolved.service             enabled enabled
+update-motd.service                  enabled enabled
+
+31 unit files listed.
+</pasted_content id="a0b7">
+
+## 2026-11-01 17:54
+
+aws tunnel port는 왜 13306이야?
+
+## 2026-11-01 17:55
+
+cloudwatch에서 리전은 왜 ap-northeast-2야?
+
+## 2026-11-01 17:55
+
+아 오케이 이제 완료했어.
+
+## 2026-11-01 18:00
+
+performance_schema는 그대로 두고, 원래 어떻게 하려던 계획이었지?
+
+## 2026-11-01 18:02
+
+비용은 얼마나 나올까?
+
+## 2026-11-01 18:04
+
+응 n_max 탐색 시작해보자. 오래 걸릴 것 같은데 백그라운드에서 시키고 그동안 뭐 다른거 할건 없을까?
+
+## 2026-11-01 18:06
+
+먼저 문서화 진행부터 시작해보자. 내 포트폴리오를 위해서 전체적인 시나리오를 만들고, 스토리로서 채용 담당자가 읽기 좋은 스토리가 나오면 좋겠거든. adr 선택 이유 부분은 그냥 모두 지워줘. 그리고 기능적인 도입이 또 뭐가 남았는 지 알려줘
+
+## 2026-11-01 18:14
+
+지금 문서들이 굉장히 많은데 필요없는것들은 전부 나열해줘 애매하다고 판단되면 그냥 전부 나열하고 한줄로 내용이 뭔 지 간단하게 알려줘
+
+## 2026-11-01 18:17
+
+확실히 필요없는것들은 전부 지워줘 docs/learning-notes.md도 지우고 좌석 찜하기 그림책, 6000석 조건의 부하 보고서, 해당 그래프 6000석 측정 원본 6000석 n_max 탐색 원본 1000석 기준 중단 기록 250석 10명 스모크 테스트 결과는 모두 지워줘
+
+## 2026-11-01 18:18
+
+응 커밋 푸시까지 진행해줘
+

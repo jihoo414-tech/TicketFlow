@@ -5,7 +5,6 @@
 - 요구사항: GitHub 이슈 #1(스펙)과 하위 티켓
 - 불변식: `docs/invariants.md`
 - 용어: `GLOSSARY.md`, 결정: `docs/adr/`
-- 학습 노트: `docs/learning-notes.md`. **사용자만 쓴다.**
 - 동시성 케이스: `docs/concurrency-cases.md`. 사용자가 쓰고, AI는 질문으로만 리뷰한다.
 
 ## 완료 조건 (순서대로)
