@@ -44,3 +44,5 @@ src/main/resources/static/
 ### graphify ###
 graphify-out/
 .env.aws
+
+.idea/
