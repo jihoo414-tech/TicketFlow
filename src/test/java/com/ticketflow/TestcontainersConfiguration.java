@@ -22,4 +22,10 @@ public class TestcontainersConfiguration {
 		return new TestClock();
 	}
 
+	@Bean
+	@Primary
+	TestTicker testTicker() {
+		return new TestTicker();
+	}
+
 }
