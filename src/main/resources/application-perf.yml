@@ -1,3 +1,15 @@
+server:
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: /tmp/access-log
+      prefix: access
+      suffix: .log
+      file-date-format: ''
+      rotate: false
+      buffered: false
+      pattern: '%{begin:msec}t %m %U %s %{us}T'
+
 spring:
   sql:
     init:
