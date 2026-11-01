@@ -360,24 +360,45 @@ def measure(run_dir, script, env, seats):
     return summary
 
 
+def run_trial(session, seats, label, tag, n, trials, csv_name, **extra):
+    log(f'{seats}석 오픈 피크 {label}: 활성 회원 {n}명')
+    summary = measure(session / f'peak-seats{seats:04d}-{tag}-n{n:04d}', 'peak.js',
+                      {'ACTIVE_MEMBERS': n, 'SHOWTIME_ID': MAIN_SHOWTIME}, seats)
+    summary.update({**extra, 'active_members': n})
+    summary['passed'] = bool(summary['seats_p95_ms'] <= PEAK_P95_TARGET and summary['hold_p95_ms'] <= PEAK_P95_TARGET
+                             and summary['system_errors'] == 0 and summary['integrity_ok'])
+    log(f"  조회 p95 {summary['seats_p95_ms']:.0f}ms, 선점 p95 {summary['hold_p95_ms']:.0f}ms, "
+        f"커넥션 대기 {summary.get('hikari_acquire_avg_ms', float('nan')):.1f}ms, "
+        f"커넥션 사용 {summary.get('hikari_usage_avg_ms', float('nan')):.1f}ms, "
+        f"오류 {summary['system_errors']}, 정합성 {summary['integrity_ok']} → {'통과' if summary['passed'] else '실패'}")
+    trials.append(summary)
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(trials).to_csv(RESULTS / csv_name, index=False, float_format='%.4f')
+    return summary['passed']
+
+
+def ladder(session, seats):
+    cap = seats // 2
+    trials = []
+    for n in ladder_steps(cap):
+        run_trial(session, seats, '단계', 'ladder', n, trials, f'peak_ladder_seats{seats:04d}.csv')
+
+
+def ladder_steps(cap):
+    steps, n = [], min(PEAK_START, cap)
+    while n < cap:
+        steps.append(n)
+        n *= 2
+    return steps + [cap]
+
+
 def peak(session, seats):
     cap = seats // 2
     trials = []
 
     def trial(search, n):
-        log(f'{seats}석 오픈 피크 탐색 {search}: 활성 회원 {n}명')
-        summary = measure(session / f'peak-seats{seats:04d}-s{search}-n{n:04d}', 'peak.js',
-                          {'ACTIVE_MEMBERS': n, 'SHOWTIME_ID': MAIN_SHOWTIME}, seats)
-        summary.update({'search': search, 'active_members': n})
-        summary['passed'] = bool(summary['seats_p95_ms'] <= PEAK_P95_TARGET and summary['hold_p95_ms'] <= PEAK_P95_TARGET
-                                 and summary['system_errors'] == 0 and summary['integrity_ok'])
-        log(f"  조회 p95 {summary['seats_p95_ms']:.0f}ms, 선점 p95 {summary['hold_p95_ms']:.0f}ms, "
-            f"커넥션 대기 {summary.get('hikari_acquire_avg_ms', float('nan')):.1f}ms, "
-            f"커넥션 사용 {summary.get('hikari_usage_avg_ms', float('nan')):.1f}ms, "
-            f"오류 {summary['system_errors']}, 정합성 {summary['integrity_ok']} → {'통과' if summary['passed'] else '실패'}")
-        trials.append(summary)
-        pd.DataFrame(trials).to_csv(RESULTS / f'peak_trials_seats{seats:04d}.csv', index=False, float_format='%.4f')
-        return summary['passed']
+        return run_trial(session, seats, f'탐색 {search}', f's{search}', n, trials,
+                         f'peak_trials_seats{seats:04d}.csv', search=search)
 
     def find_n_max(search, low, high):
         passed, failed = 0, None
@@ -432,7 +453,7 @@ def keep_awake():
 def main():
     keep_awake()
     parser = argparse.ArgumentParser(description='TicketFlow 부하 테스트를 실행하고 결과를 docs/performance/에 저장한다')
-    parser.add_argument('scenario', choices=['peak'])
+    parser.add_argument('scenario', choices=['peak', 'ladder'])
     parser.add_argument('--seats', type=int, nargs='+', choices=SEAT_COUNTS, default=SEAT_COUNTS)
     parser.add_argument('--skip-build', action='store_true')
     args = parser.parse_args()
@@ -442,7 +463,7 @@ def main():
     if not args.skip_build:
         build()
     for seats in args.seats:
-        peak(session, seats)
+        (ladder if args.scenario == 'ladder' else peak)(session, seats)
     sh(COMPOSE + ['down', '-v'], cwd=ROOT)
     log(f'완료: 원본 {session}, 집계 {RESULTS}')
 
