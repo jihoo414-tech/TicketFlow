@@ -38,7 +38,9 @@ public class CurrentMemberIdArgumentResolver implements HandlerMethodArgumentRes
             throw new BusinessException(ErrorCode.MEMBER_ID_MISSING);
         }
         Long memberId = parseMemberId(xMemberId);
-        memberService.validateMemberExists(memberId);
+        if (parameter.getParameterAnnotation(CurrentMemberId.class).checkExists()) {
+            memberService.validateMemberExists(memberId);
+        }
         return memberId;
     }
 
