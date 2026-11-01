@@ -21,7 +21,7 @@ public class HoldController {
     private final HoldService holdService;
 
     @PostMapping("/api/showtimes/{showtimeId}/holds")
-    public ResponseEntity<HoldResponse> hold(@CurrentMemberId Long memberId,
+    public ResponseEntity<HoldResponse> hold(@CurrentMemberId(checkExists = false) Long memberId,
                                              @PathVariable Long showtimeId,
                                              @Valid @RequestBody HoldRequest request) {
         HoldResponse holdResponse = holdService.hold(memberId, showtimeId, request.seatIds());
