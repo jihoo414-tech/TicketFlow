@@ -173,7 +173,7 @@ python perf/run.py peak --seats 1000                 # N_max 탐색(10명 시작
 python perf/plot.py                                  # docs/performance/*.png
 ```
 
-실행할 때마다 `docker-compose.aws.yml`로 DB를 새로 만든다. 요구사항: Docker, k6, Python 3 + pandas + matplotlib, 저장소 루트의 `.env`.
+실행할 때마다 `docker-compose.aws.yml`로 DB를 새로 만든다. 요구사항: Docker, k6, Python 3 + pandas + matplotlib, 저장소 루트의 `.env`. AWS에서 잴 때는 `--target aws`를 붙이고 `perf/aws.env.example`을 `.env.aws`로 복사해 채운다(추가로 `pip install pymysql boto3`). 판정은 서버 쪽 처리 시간(Tomcat 접근 로그) p95로 한다.
 
 ## 문서
 

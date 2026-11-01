@@ -4,6 +4,7 @@
 
 - **오케스트레이션·집계·그래프**: Python 3 + pandas + matplotlib. 실행 순서 제어, `docker exec`로 MySQL 지표 수집, Actuator 폴링, k6 CSV 집계, PNG 생성을 같은 언어로 처리한다.
 - **부하 발생**: k6(ADR 0016).
+- **측정 대상**: `run.py --target local|aws`. 측정 순서·판정·결과 형식은 같고, 초기화·SQL 실행·앱 재시작·자원 수집만 `perf/target.py`에서 대상별로 다르다. AWS는 SSH 터널로 RDS에 붙고(pymysql), CloudWatch에서 CPU 크레딧을 가져온다(boto3). 접속 정보는 커밋하지 않는 `.env.aws`에 둔다(`perf/aws.env.example`).
 - **위치**: k6 스크립트·시드·오케스트레이터는 `perf/`에 둔다. 집계 CSV·PNG·보고서는 `docs/performance/`에 둔다. 요청 단위 원본(k6 CSV)은 수십 MB라서 `perf/out/`에 두고 커밋하지 않는다.
 - **시나리오**
   - **오픈 피크**: ADR 0017 그대로. 활성 회원 N명이 동시에 출발하는 방식이다. 두 가지로 돌린다.
