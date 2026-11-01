@@ -1,5 +1,6 @@
 package com.ticketflow.domain.performance.service;
 
+import com.ticketflow.domain.performance.dto.SeatPosition;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
 import com.ticketflow.domain.performance.repository.SeatRepository;
@@ -17,7 +18,7 @@ public class SeatService {
     private final SeatRepository seatRepository;
 
     @Transactional(readOnly = true)
-    public List<Seat> findSeats(Showtime showtime) {
+    public List<SeatPosition> findSeatPositions(Showtime showtime) {
         return seatRepository.findByShowtimeIdOrderBySeatRowAscSeatNoAsc(showtime.getId());
     }
 
