@@ -19,16 +19,24 @@ public class ShowtimeService {
 
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getShowtimes(Long performanceId) {
+        //공연이 존재하는 지 존재하지 않는다면 예외
         performanceService.validatePerformanceExists(performanceId);
+
         return toResponses(findShowtimesOf(performanceId));
     }
 
-    @Transactional(readOnly = true)
     public Showtime findShowtime(Long showtimeId) {
         return showtimeRepository.findById(showtimeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SHOWTIME_NOT_FOUND));
     }
 
+    public void validateShowtimeExists(Long showtimeId) {
+        if (!showtimeRepository.existsById(showtimeId)) {
+            throw new BusinessException(ErrorCode.SHOWTIME_NOT_FOUND);
+        }
+    }
+
+    //performance에 해당하는 모든 showtime반환 한 공연에 대한 회차는 많이 않을 것으로 예상 -> 페이징 미적용.
     private List<Showtime> findShowtimesOf(Long performanceId) {
         return showtimeRepository.findByPerformanceIdOrderByStartsAtAsc(performanceId);
     }

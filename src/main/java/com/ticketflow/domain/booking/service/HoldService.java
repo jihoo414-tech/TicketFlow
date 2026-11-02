@@ -88,7 +88,7 @@ public class HoldService {
 
     @Transactional(readOnly = true)
     public RemainingSeatCountResponse getRemainingSeatCount(Long memberId, Long showtimeId) {
-        showtimeService.findShowtime(showtimeId);
+        showtimeService.validateShowtimeExists(showtimeId);
         return new RemainingSeatCountResponse(Hold.remainingSeatCount(countReservedSeats(memberId, showtimeId)));
     }
 

@@ -46,3 +46,4 @@ graphify-out/
 .env.aws
 
 .idea/
+app.tar
