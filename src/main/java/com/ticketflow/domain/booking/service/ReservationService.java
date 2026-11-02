@@ -29,8 +29,7 @@ public class ReservationService {
     public ReservationResponse.Created pay(Long memberId, Long holdId) {
         LockedOccupancy locked = seatOccupancyLock.acquireMemberAndSeats(memberId, holdService.findSeatIds(holdId));
 
-        Hold hold = holdService.findHold(holdId);
-        validateOwner(hold, memberId);
+        Hold hold = holdService.findOwnedHold(holdId, memberId);
 
         Reservation reservation = saveReservation(hold.reserve(locked.lockedAt()));
 
@@ -53,12 +52,6 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public List<ReservationResponse.Mine> getMyReservations(Long memberId) {
         return toMyReservationResponses(findReservationsOf(memberId));
-    }
-
-    private void validateOwner(Hold hold, Long memberId) {
-        if (!hold.isOwnedBy(memberId)) {
-            throw new BusinessException(ErrorCode.HOLD_NOT_OWNED);
-        }
     }
 
     private void validateReservationOwner(Hold hold, Long memberId) {
