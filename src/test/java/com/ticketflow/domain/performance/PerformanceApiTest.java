@@ -94,6 +94,24 @@ class PerformanceApiTest {
     }
 
     @Test
+    void 회차를_조회하면_예매_오픈_시각이_보인다() throws Exception {
+        Showtime showtime = saveShowtime(LocalDateTime.of(2026, 11, 1, 19, 0, 0));
+
+        mockMvc.perform(get("/api/showtimes/{showtimeId}", showtime.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(showtime.getId()))
+                .andExpect(jsonPath("$.bookingOpenAt").value("2026-10-01T10:00:00"))
+                .andExpect(jsonPath("$.startsAt").doesNotExist());
+    }
+
+    @Test
+    void 없는_회차를_조회하면_회차가_없다는_오류가_온다() throws Exception {
+        mockMvc.perform(get("/api/showtimes/{showtimeId}", Long.MAX_VALUE))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("SHOWTIME_NOT_FOUND"));
+    }
+
+    @Test
     void 회차의_구역_목록을_조회하면_표시_순서대로_구역_이름이_보인다() throws Exception {
         Showtime showtime = saveShowtime(LocalDateTime.of(2026, 11, 1, 19, 0, 0));
         zoneRepository.save(new Zone(showtime, "B구역", 2));
