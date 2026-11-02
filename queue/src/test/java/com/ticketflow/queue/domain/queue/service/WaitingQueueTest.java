@@ -159,8 +159,8 @@ class WaitingQueueTest {
     void 앞에_남은_인원이_적으면_1초_뒤에_다시_확인하라고_한다() {
         joinMembers(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L);
 
-        assertThat(queue.status(7L)).isEqualTo(new QueueStatus.Waiting(6, 1));
-        assertThat(queue.status(8L)).isEqualTo(new QueueStatus.Waiting(7, 3));
+        assertThat(queue.status(7L)).isEqualTo(new QueueStatus.Waiting(SHOWTIME_ID, 6, 1));
+        assertThat(queue.status(8L)).isEqualTo(new QueueStatus.Waiting(SHOWTIME_ID, 7, 3));
     }
 
     @Test
