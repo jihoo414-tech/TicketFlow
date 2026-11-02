@@ -1,6 +1,6 @@
 package com.ticketflow.global.exception;
 
-import com.ticketflow.global.config.SecurityConfig;
+import com.ticketflow.global.config.JwtConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +47,7 @@ public class AuthenticationErrorEntryPoint implements AuthenticationEntryPoint {
     private boolean isExpired(Throwable exception) {
         for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
             if (cause instanceof JwtValidationException validation
-                    && validation.getErrors().stream().anyMatch(error -> SecurityConfig.TOKEN_EXPIRED.equals(error.getErrorCode()))) {
+                    && validation.getErrors().stream().anyMatch(error -> JwtConfig.TOKEN_EXPIRED.equals(error.getErrorCode()))) {
                 return true;
             }
         }
