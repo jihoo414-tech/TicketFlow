@@ -69,8 +69,7 @@ public class HoldService {
     public HoldResponse.Cancelled cancel(Long memberId, Long holdId) {
         LockedSeats locked = seatOccupancyLock.acquireSeats(findSeatIds(holdId));
 
-        Hold hold = findHold(holdId);
-        validateOwner(hold, memberId);
+        Hold hold = findOwnedHold(holdId, memberId);
         hold.cancel(locked.lockedAt());
         return HoldResponse.Cancelled.from(hold);
     }
@@ -95,6 +94,13 @@ public class HoldService {
     public Hold findHold(Long holdId) {
         return holdRepository.findById(holdId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.HOLD_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public Hold findOwnedHold(Long holdId, Long memberId) {
+        Hold hold = findHold(holdId);
+        validateOwner(hold, memberId);
+        return hold;
     }
 
     @Transactional(readOnly = true)
