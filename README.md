@@ -122,19 +122,19 @@ Testcontainers가 MySQL 컨테이너를 띄우므로 Docker가 켜져 있어야 
 
 ## API
 
-성공하면 DTO를 그대로, 실패하면 RFC 9457 `ProblemDetail`에 `code`(`ErrorCode` 이름)를 더해 응답한다([ADR 0006](docs/adr/0006-response-format.md)). 회원이 필요한 요청은 `Authorization: Bearer <토큰>` 헤더를 보낸다. 토큰이 없거나 틀리거나 만료되면 401(`AUTH_TOKEN_MISSING` / `AUTH_TOKEN_INVALID` / `AUTH_TOKEN_EXPIRED`)이다.
+성공하면 DTO를 그대로, 실패하면 RFC 9457 `ProblemDetail`에 `code`(`ErrorCode` 이름)를 더해 응답한다([ADR 0006](docs/adr/0006-response-format.md)). 회원이 필요한 요청은 `Authorization: Bearer <토큰>` 헤더를 보낸다. 토큰이 없거나 틀리거나 만료되면 401(`AUTH_TOKEN_MISSING` / `AUTH_TOKEN_INVALID` / `AUTH_TOKEN_EXPIRED`)이다. 구역 목록, 구역 좌석, 선점은 대기열 서버에서 받은 입장권도 `X-Entry-Token` 헤더로 보낸다. 입장권이 없거나 틀리거나 만료됐거나 선점에 이미 썼으면 403(`ENTRY_PASS_REQUIRED` / `ENTRY_PASS_INVALID` / `ENTRY_PASS_EXPIRED` / `ENTRY_PASS_USED`)이다([ADR 0024](docs/adr/0024-admit-members-through-queue-server.md)).
 
-| 메서드 | 경로 | 설명 | 회원 |
-|---|---|---|:---:|
+| 메서드 | 경로 | 설명 | 회원 | 입장권 |
+|---|---|---|:---:|:---:|
 | POST | `/api/members` | 가입 (`{"email", "password", "name"}`) | |
 | POST | `/api/auth/login` | 로그인 → `{"accessToken"}` | |
 | GET | `/api/members/me` | 현재 회원 | ✓ |
 | GET | `/api/performances` | 공연 목록 | |
 | GET | `/api/performances/{performanceId}/showtimes` | 공연의 회차 목록 | |
 | GET | `/api/showtimes/{showtimeId}` | 회차의 예매 오픈 시각 (대기열 서버가 쓴다, [ADR 0024](docs/adr/0024-admit-members-through-queue-server.md)) | |
-| GET | `/api/showtimes/{showtimeId}/zones` | 회차의 구역 목록 (이름, 표시 순서) | |
-| GET | `/api/zones/{zoneId}/seats` | 구역의 좌석 상태 (구역별로 1초 동안 같은 응답을 공유한다, [ADR 0023](docs/adr/0023-show-seats-by-zone.md)) | |
-| POST | `/api/showtimes/{showtimeId}/holds` | 선점 (`{"seatIds": [1, 2]}`) | ✓ |
+| GET | `/api/showtimes/{showtimeId}/zones` | 회차의 구역 목록 (이름, 표시 순서) | ✓ | ✓ |
+| GET | `/api/zones/{zoneId}/seats` | 구역의 좌석 상태 (구역별로 1초 동안 같은 응답을 공유한다, [ADR 0023](docs/adr/0023-show-seats-by-zone.md)) | ✓ | ✓ |
+| POST | `/api/showtimes/{showtimeId}/holds` | 선점 (`{"seatIds": [1, 2]}`) | ✓ | ✓ |
 | GET | `/api/members/me/showtimes/{showtimeId}/remaining-seat-count` | 회차에서 더 선점할 수 있는 좌석 수(4 − 예매한 좌석 수) | ✓ |
 | POST | `/api/holds/{holdId}/cancellation` | 선점 취소 | ✓ |
 | POST | `/api/holds/{holdId}/payment` | 결제 → 예매 | ✓ |

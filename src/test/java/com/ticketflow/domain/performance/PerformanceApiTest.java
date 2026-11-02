@@ -10,6 +10,7 @@ import com.ticketflow.domain.performance.repository.PerformanceRepository;
 import com.ticketflow.domain.performance.repository.SeatRepository;
 import com.ticketflow.domain.performance.repository.ShowtimeRepository;
 import com.ticketflow.domain.performance.repository.ZoneRepository;
+import com.ticketflow.fixture.EntryPassTokens;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,6 +37,9 @@ class PerformanceApiTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EntryPassTokens entryPassTokens;
 
     @Autowired
     PerformanceRepository performanceRepository;
@@ -117,7 +121,7 @@ class PerformanceApiTest {
         zoneRepository.save(new Zone(showtime, "B구역", 2));
         zoneRepository.save(new Zone(showtime, "A구역", 1));
 
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/zones", showtime.getId()))
+        mockMvc.perform(get("/api/showtimes/{showtimeId}/zones", showtime.getId()).with(entryPassTokens.viewer(showtime.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].name").value(contains("A구역", "B구역")))
                 .andExpect(jsonPath("$[0].availableSeatCount").doesNotExist());
@@ -125,7 +129,7 @@ class PerformanceApiTest {
 
     @Test
     void 없는_회차의_구역_목록을_조회하면_회차가_없다는_오류가_온다() throws Exception {
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/zones", Long.MAX_VALUE))
+        mockMvc.perform(get("/api/showtimes/{showtimeId}/zones", Long.MAX_VALUE).with(entryPassTokens.viewer(Long.MAX_VALUE)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("SHOWTIME_NOT_FOUND"));
     }
@@ -141,7 +145,7 @@ class PerformanceApiTest {
                 new Seat(zoneB, "1", 3)
         ));
 
-        mockMvc.perform(get("/api/zones/{zoneId}/seats", zoneA.getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", zoneA.getId()).with(entryPassTokens.viewer(zoneA.getShowtime().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].row").value(contains("1", "1")))
                 .andExpect(jsonPath("$[*].number").value(contains(1, 2)))
@@ -159,14 +163,14 @@ class PerformanceApiTest {
                 new Seat(zone, "1", 1)
         ));
 
-        mockMvc.perform(get("/api/zones/{zoneId}/seats", zone.getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", zone.getId()).with(entryPassTokens.viewer(zone.getShowtime().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].row").value(contains("1", "2", "10")));
     }
 
     @Test
     void 없는_구역의_좌석_목록을_조회하면_구역이_없다는_오류가_온다() throws Exception {
-        mockMvc.perform(get("/api/zones/{zoneId}/seats", Long.MAX_VALUE))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", Long.MAX_VALUE).with(entryPassTokens.viewer(Long.MAX_VALUE)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
     }
@@ -189,7 +193,7 @@ class PerformanceApiTest {
     }
 
     private Long findOnlySeatId(Zone zone) throws Exception {
-        String body = mockMvc.perform(get("/api/zones/{zoneId}/seats", zone.getId()))
+        String body = mockMvc.perform(get("/api/zones/{zoneId}/seats", zone.getId()).with(entryPassTokens.viewer(zone.getShowtime().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].row").value(contains("1")))
                 .andExpect(jsonPath("$[*].number").value(contains(1)))
