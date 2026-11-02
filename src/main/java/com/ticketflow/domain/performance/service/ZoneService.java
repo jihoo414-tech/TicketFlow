@@ -19,7 +19,7 @@ public class ZoneService {
     private final ZoneRepository zoneRepository;
 
     @Transactional(readOnly = true)
-    public List<ZoneResponse> getZones(Long showtimeId) {
+    public List<ZoneResponse.Item> getZones(Long showtimeId) {
         showtimeService.validateShowtimeExists(showtimeId);
         return toResponses(findZonesOf(showtimeId));
     }
@@ -34,9 +34,9 @@ public class ZoneService {
         return zoneRepository.findAllByShowtimeIdOrderByDisplayOrder(showtimeId);
     }
 
-    private List<ZoneResponse> toResponses(List<Zone> zones) {
+    private List<ZoneResponse.Item> toResponses(List<Zone> zones) {
         return zones.stream()
-                .map(ZoneResponse::from)
+                .map(ZoneResponse.Item::from)
                 .toList();
     }
 }

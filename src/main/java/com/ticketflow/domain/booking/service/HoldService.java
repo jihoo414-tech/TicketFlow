@@ -1,9 +1,7 @@
 package com.ticketflow.domain.booking.service;
 
-import com.ticketflow.domain.booking.dto.HoldCancellationResponse;
 import com.ticketflow.domain.booking.dto.HoldResponse;
 import com.ticketflow.domain.booking.dto.OccupiedSeat;
-import com.ticketflow.domain.booking.dto.RemainingSeatCountResponse;
 import com.ticketflow.domain.booking.dto.SeatResponse;
 import com.ticketflow.domain.booking.dto.SeatStatus;
 import com.ticketflow.domain.booking.entity.Hold;
@@ -46,7 +44,7 @@ public class HoldService {
     private final Clock clock;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public HoldResponse hold(Long memberId, Long showtimeId, List<Long> seatIds) {
+    public HoldResponse.Created hold(Long memberId, Long showtimeId, List<Long> seatIds) {
 
         LockedOccupancy locked = seatOccupancyLock.acquireMemberAndSeats(memberId, seatIds);
 
@@ -68,17 +66,17 @@ public class HoldService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public HoldCancellationResponse cancel(Long memberId, Long holdId) {
+    public HoldResponse.Cancelled cancel(Long memberId, Long holdId) {
         LockedSeats locked = seatOccupancyLock.acquireSeats(findSeatIds(holdId));
 
         Hold hold = findHold(holdId);
         validateOwner(hold, memberId);
         hold.cancel(locked.lockedAt());
-        return HoldCancellationResponse.from(hold);
+        return HoldResponse.Cancelled.from(hold);
     }
 
     @Transactional(readOnly = true)
-    public List<SeatResponse> getSeats(Long zoneId) {
+    public List<SeatResponse.Item> getSeats(Long zoneId) {
         Zone zone = zoneService.findZone(zoneId);
         List<SeatPosition> seats = seatService.findSeatPositions(zone);
         //좌석Id : 좌석 상태
@@ -87,10 +85,10 @@ public class HoldService {
     }
 
     @Transactional(readOnly = true)
-    public RemainingSeatCountResponse getRemainingSeatCount(Long memberId, Long showtimeId) {
+    public SeatResponse.RemainingCount getRemainingSeatCount(Long memberId, Long showtimeId) {
         showtimeService.validateShowtimeExists(showtimeId);
         long reservedSeatCount = countReservedSeats(memberId, showtimeId);
-        return new RemainingSeatCountResponse(Hold.remainingSeatCount(reservedSeatCount));
+        return new SeatResponse.RemainingCount(Hold.remainingSeatCount(reservedSeatCount));
     }
 
     @Transactional(readOnly = true)
@@ -168,14 +166,14 @@ public class HoldService {
         return LocalDateTime.now(clock);
     }
 
-    private HoldResponse toResponse(Hold hold, List<Seat> seats) {
-        return HoldResponse.of(hold.getId(), seats, hold.getExpiresAt());
+    private HoldResponse.Created toResponse(Hold hold, List<Seat> seats) {
+        return HoldResponse.Created.of(hold.getId(), seats, hold.getExpiresAt());
     }
 
-    private List<SeatResponse> toSeatResponses(List<SeatPosition> seats, int price, Map<Long, SeatStatus> occupiedSeatStatuses) {
+    private List<SeatResponse.Item> toSeatResponses(List<SeatPosition> seats, int price, Map<Long, SeatStatus> occupiedSeatStatuses) {
         return seats.stream()
                 //넘겨준 좌석id : 상태 맵에 seats의 id가 있다면, 그 좌석은 이미 선점 불가, 없다면 선점 가능.
-                .map(seat -> SeatResponse.of(seat, price, occupiedSeatStatuses.getOrDefault(seat.id(), SeatStatus.AVAILABLE)))
+                .map(seat -> SeatResponse.Item.of(seat, price, occupiedSeatStatuses.getOrDefault(seat.id(), SeatStatus.AVAILABLE)))
                 .toList();
     }
 
