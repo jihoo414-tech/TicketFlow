@@ -35,6 +35,10 @@ public enum ErrorCode {
     SHOWTIME_ALREADY_STARTED(HttpStatus.CONFLICT, "회차가 이미 시작되어 예매를 취소할 수 없습니다."),
 
 
+    ENTRY_PASS_REQUIRED(HttpStatus.FORBIDDEN, "대기열을 거쳐 입장해 주세요."),
+    ENTRY_PASS_INVALID(HttpStatus.FORBIDDEN, "입장권이 올바르지 않습니다. 대기열에서 다시 입장해 주세요."),
+    ENTRY_PASS_EXPIRED(HttpStatus.FORBIDDEN, "입장 시간이 끝났습니다. 대기열에서 다시 입장해 주세요."),
+    ENTRY_PASS_USED(HttpStatus.FORBIDDEN, "이미 선점에 쓴 입장권입니다. 좌석을 더 고르려면 대기열에서 다시 입장해 주세요."),
     AUTH_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
     AUTH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요."),
     AUTH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다. 다시 로그인해 주세요."),

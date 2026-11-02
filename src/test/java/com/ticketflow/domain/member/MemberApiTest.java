@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.ticketflow.TestClock;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.EntryPassTokens;
 import com.ticketflow.fixture.HoldFixture;
 import com.ticketflow.fixture.HoldFixtureFactory;
 import org.junit.jupiter.api.AfterEach;
@@ -33,6 +34,9 @@ class MemberApiTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EntryPassTokens entryPassTokens;
 
     @Autowired
     AuthHeaders authHeaders;
@@ -203,11 +207,12 @@ class MemberApiTest {
     }
 
     @Test
-    void 좌석_조회는_로그인하지_않아도_된다() throws Exception {
+    void 좌석_조회는_로그인해야_한다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
 
         mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_TOKEN_MISSING"));
     }
 
     private ResultActions signup(String email, String password, String name) throws Exception {

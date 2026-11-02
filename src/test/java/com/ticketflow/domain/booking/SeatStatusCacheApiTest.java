@@ -2,6 +2,7 @@ package com.ticketflow.domain.booking;
 
 import com.ticketflow.TestClock;
 import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.EntryPassTokens;
 import com.ticketflow.TestTicker;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.fixture.HoldFixture;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
+import static com.ticketflow.domain.admission.service.EntryPasses.ENTRY_TOKEN;
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -34,6 +36,9 @@ class SeatStatusCacheApiTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EntryPassTokens entryPassTokens;
 
     @Autowired
     AuthHeaders authHeaders;
@@ -61,7 +66,7 @@ class SeatStatusCacheApiTest {
         hold(fixture);
         testTicker.advance(Duration.ofMillis(999));
 
-        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()).with(entryPassTokens.viewer(fixture.showtime().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].status").value(contains("AVAILABLE", "AVAILABLE")));
     }
@@ -75,13 +80,13 @@ class SeatStatusCacheApiTest {
         hold(fixture);
         testTicker.advance(Duration.ofSeconds(1));
 
-        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()).with(entryPassTokens.viewer(fixture.showtime().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].status").value(contains("HELD", "HELD")));
     }
 
     private void lookUpSeats(HoldFixture fixture) throws Exception {
-        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()).with(entryPassTokens.viewer(fixture.showtime().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].status").value(contains("AVAILABLE", "AVAILABLE")));
     }
@@ -89,6 +94,7 @@ class SeatStatusCacheApiTest {
     private void hold(HoldFixture fixture) throws Exception {
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
+                        .header(ENTRY_TOKEN, entryPassTokens.issue(fixture.member().getId(), fixture.showtime().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}

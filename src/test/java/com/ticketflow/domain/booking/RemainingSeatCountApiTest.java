@@ -3,6 +3,7 @@ package com.ticketflow.domain.booking;
 import com.jayway.jsonpath.JsonPath;
 import com.ticketflow.TestClock;
 import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.EntryPassTokens;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.member.entity.Member;
 import com.ticketflow.fixture.HoldFixture;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static com.ticketflow.domain.admission.service.EntryPasses.ENTRY_TOKEN;
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -35,6 +37,9 @@ class RemainingSeatCountApiTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EntryPassTokens entryPassTokens;
 
     @Autowired
     AuthHeaders authHeaders;
@@ -126,6 +131,7 @@ class RemainingSeatCountApiTest {
     private Long hold(Member member, HoldFixture fixture, List<Long> seatIds) throws Exception {
         String body = mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId()))
+                        .header(ENTRY_TOKEN, entryPassTokens.issue(member.getId(), fixture.showtime().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
