@@ -60,7 +60,7 @@ export default function ReservationListPage() {
                   </p>
                   <p className="mt-1 text-sm text-gray-600">{formatDateTime(reservation.startsAt)}</p>
                   <p className="mt-1 text-sm text-gray-500">
-                    {reservation.seats.map(formatSeat).join(', ')} · {formatPrice(reservation.totalPrice)}
+                    {reservation.seats.map(seat => `${seat.zoneName} ${formatSeat(seat)}`).join(', ')} · {formatPrice(reservation.totalPrice)}
                   </p>
                 </div>
                 {isCancellable(reservation, cancelled, now) && (

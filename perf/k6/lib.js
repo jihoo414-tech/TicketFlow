@@ -56,8 +56,19 @@ function errorCode(res) {
     }
 }
 
-export function lookupAdjacentPairs(showtimeId, memberId) {
-    const res = http.get(`${BASE_URL}/api/showtimes/${showtimeId}/seats`, params(memberId, 'seats'));
+export function pickZone(showtimeId, memberId) {
+    const res = http.get(`${BASE_URL}/api/showtimes/${showtimeId}/zones`, params(memberId, 'zones'));
+    const ok = res.status === 200;
+    record('zones', ok);
+    if (!ok) {
+        return null;
+    }
+    const zones = res.json();
+    return zones.length === 0 ? null : zones[Math.floor(Math.random() * zones.length)].id;
+}
+
+export function lookupAdjacentPairs(zoneId, memberId) {
+    const res = http.get(`${BASE_URL}/api/zones/${zoneId}/seats`, params(memberId, 'seats'));
     const ok = res.status === 200;
     record('seats', ok);
     if (!ok) {
@@ -98,7 +109,7 @@ function hold(showtimeId, memberId, seatIds) {
     return 'error';
 }
 
-export function holdWithRetry(showtimeId, memberId, availablePairs) {
+export function holdWithRetry(showtimeId, zoneId, memberId, availablePairs) {
     let available = availablePairs;
     for (let attempt = 1; attempt <= MAX_HOLD_ATTEMPTS; attempt++) {
         if (available === null || available.length === 0) {
@@ -110,7 +121,7 @@ export function holdWithRetry(showtimeId, memberId, availablePairs) {
             return result === 'held';
         }
         if (attempt < MAX_HOLD_ATTEMPTS) {
-            available = lookupAdjacentPairs(showtimeId, memberId);
+            available = lookupAdjacentPairs(zoneId, memberId);
         }
     }
     return false;

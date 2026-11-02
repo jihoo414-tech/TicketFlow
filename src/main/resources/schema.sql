@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS reservation;
 DROP TABLE IF EXISTS hold_seat;
 DROP TABLE IF EXISTS hold;
 DROP TABLE IF EXISTS seat;
+DROP TABLE IF EXISTS zone;
 DROP TABLE IF EXISTS showtime;
 DROP TABLE IF EXISTS performance;
 DROP TABLE IF EXISTS member;
@@ -31,13 +32,25 @@ CREATE TABLE showtime (
     FOREIGN KEY (performance_id) REFERENCES performance (id)
 );
 
+CREATE TABLE zone (
+    id            BIGINT      NOT NULL AUTO_INCREMENT,
+    showtime_id   BIGINT      NOT NULL,
+    name          VARCHAR(20) NOT NULL,
+    display_order INT         NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (showtime_id) REFERENCES showtime (id),
+    UNIQUE KEY uk_zone_showtime_name (showtime_id, name)
+);
+
 CREATE TABLE seat (
     id          BIGINT      NOT NULL AUTO_INCREMENT,
     showtime_id BIGINT      NOT NULL,
+    zone_id     BIGINT      NOT NULL,
     seat_row    VARCHAR(10) NOT NULL,
     seat_no     INT         NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (showtime_id) REFERENCES showtime (id),
+    FOREIGN KEY (zone_id) REFERENCES zone (id),
     UNIQUE KEY uk_seat_showtime_row_no (showtime_id, seat_row, seat_no)
 );
 

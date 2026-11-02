@@ -18,10 +18,10 @@ public interface HoldSeatRepository extends JpaRepository<HoldSeat, Long> {
     @Query("""
             select new com.ticketflow.domain.booking.dto.OccupiedSeat(hs.seat.id, h.status)
             from HoldSeat hs join hs.hold h
-            where h.showtime.id = :showtimeId
+            where hs.seat.zone.id = :zoneId
               and (h.status = :reserved or (h.status = :held and h.expiresAt > :now))
             """)
-    List<OccupiedSeat> findOccupyingByShowtimeId(@Param("showtimeId") Long showtimeId,
+    List<OccupiedSeat> findOccupyingByZoneId(@Param("zoneId") Long zoneId,
                                                  @Param("reserved") HoldStatus reserved,
                                                  @Param("held") HoldStatus held,
                                                  @Param("now") LocalDateTime now);
@@ -35,9 +35,9 @@ public interface HoldSeatRepository extends JpaRepository<HoldSeat, Long> {
     List<Long> findSeatIdsByHoldId(@Param("holdId") Long holdId);
 
     @Query("""
-            select hs from HoldSeat hs join fetch hs.seat s
+            select hs from HoldSeat hs join fetch hs.seat s join fetch s.zone
             where hs.hold.id in :holdIds
-            order by s.seatRow, s.seatNo
+            order by length(s.seatRow), s.seatRow, s.seatNo
             """)
     List<HoldSeat> findAllWithSeatByHoldIdIn(@Param("holdIds") List<Long> holdIds);
 }

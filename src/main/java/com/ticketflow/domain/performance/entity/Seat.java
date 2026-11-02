@@ -20,14 +20,19 @@ public class Seat {
     @JoinColumn(name = "showtime_id")
     private Showtime showtime;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "zone_id")
+    private Zone zone;
+
     @Column(name = "seat_row")
     private String seatRow;
 
     @Column(name = "seat_no")
     private int seatNo;
 
-    public Seat(Showtime showtime, String seatRow, int seatNo) {
-        this.showtime = showtime;
+    public Seat(Zone zone, String seatRow, int seatNo) {
+        this.showtime = zone.getShowtime();
+        this.zone = zone;
         this.seatRow = seatRow;
         this.seatNo = seatNo;
     }

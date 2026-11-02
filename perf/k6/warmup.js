@@ -1,5 +1,5 @@
 import exec from 'k6/execution';
-import { holdWithRetry, lookupAdjacentPairs } from './lib.js';
+import { holdWithRetry, lookupAdjacentPairs, pickZone } from './lib.js';
 
 const SHOWTIME_ID = Number(__ENV.SHOWTIME_ID || 2);
 const MEMBER_OFFSET = Number(__ENV.MEMBER_OFFSET || 9000);
@@ -12,5 +12,8 @@ export const options = {
 
 export default function () {
     const memberId = MEMBER_OFFSET + exec.scenario.iterationInTest + 1;
-    holdWithRetry(SHOWTIME_ID, memberId, lookupAdjacentPairs(SHOWTIME_ID, memberId));
+    const zoneId = pickZone(SHOWTIME_ID, memberId);
+    if (zoneId !== null) {
+        holdWithRetry(SHOWTIME_ID, zoneId, memberId, lookupAdjacentPairs(zoneId, memberId));
+    }
 }
