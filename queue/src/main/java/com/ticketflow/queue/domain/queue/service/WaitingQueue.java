@@ -57,8 +57,9 @@ public class WaitingQueue {
             return new QueueStatus.NotInQueue();
         }
         lastSeenByMember.put(memberId, clock.instant());
-        long position = waitersByMember.get(memberId).number() - lastAdmittedNumber - 1;
-        return new QueueStatus.Waiting(position, retryAfterSeconds(position));
+        Waiter waiter = waitersByMember.get(memberId);
+        long position = waiter.number() - lastAdmittedNumber - 1;
+        return new QueueStatus.Waiting(waiter.showtimeId(), position, retryAfterSeconds(position));
     }
 
     public synchronized void leave(Long memberId) {
