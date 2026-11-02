@@ -10,7 +10,7 @@
 
 | 기능 | 내용 |
 |---|---|
-| 공연·회차·좌석 조회 | 공연 목록, 공연의 회차 목록, 회차의 좌석 상태(빈 좌석 / 점유됨) |
+| 공연·회차·구역·좌석 조회 | 공연 목록, 공연의 회차 목록, 회차의 구역 목록, 구역의 좌석 상태(빈 좌석 / 점유됨). 좌석은 구역을 골라야 보인다 |
 | 선점 | 같은 회차의 좌석 1~4석을 전부 선점하거나 전부 실패한다. 예매 오픈 시각 전에는 선점할 수 없다. |
 | 선점 취소 | 결제 전에 자기 선점을 포기하고 좌석을 연다. |
 | 선점 만료 | 5분이 지나면 정리 작업이 없어도 그 즉시 좌석이 다시 열린다. |
@@ -92,7 +92,7 @@ docker compose up -d
 
 - 회원 3명: `member1@ticketflow.local` ~ `member3@ticketflow.local`, 비밀번호는 모두 `password1234`
 - 레미제라블 2회차(하나는 예매 오픈 전, 3분 뒤 오픈), 오페라의 유령 1회차
-- 회차마다 A~E열 × 10석
+- 회차마다 1~5열 × 10석, A구역(1~5번)과 B구역(6~10번)
 
 ### 프론트만 따로 개발할 때
 
@@ -131,7 +131,8 @@ Testcontainers가 MySQL 컨테이너를 띄우므로 Docker가 켜져 있어야 
 | GET | `/api/members/me` | 현재 회원 | ✓ |
 | GET | `/api/performances` | 공연 목록 | |
 | GET | `/api/performances/{performanceId}/showtimes` | 공연의 회차 목록 | |
-| GET | `/api/showtimes/{showtimeId}/seats` | 회차의 좌석 상태 (회차별로 1초 동안 같은 응답을 공유한다) | |
+| GET | `/api/showtimes/{showtimeId}/zones` | 회차의 구역 목록 (이름, 표시 순서) | |
+| GET | `/api/zones/{zoneId}/seats` | 구역의 좌석 상태 (구역별로 1초 동안 같은 응답을 공유한다, [ADR 0023](docs/adr/0023-show-seats-by-zone.md)) | |
 | POST | `/api/showtimes/{showtimeId}/holds` | 선점 (`{"seatIds": [1, 2]}`) | ✓ |
 | GET | `/api/members/me/showtimes/{showtimeId}/remaining-seat-count` | 회차에서 더 선점할 수 있는 좌석 수(4 − 예매한 좌석 수) | ✓ |
 | POST | `/api/holds/{holdId}/cancellation` | 선점 취소 | ✓ |

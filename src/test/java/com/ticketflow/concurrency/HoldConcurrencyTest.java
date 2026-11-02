@@ -10,6 +10,7 @@ import com.ticketflow.domain.member.entity.Member;
 import com.ticketflow.domain.member.repository.MemberRepository;
 import com.ticketflow.domain.performance.repository.PerformanceRepository;
 import com.ticketflow.domain.performance.repository.SeatRepository;
+import com.ticketflow.domain.performance.repository.ZoneRepository;
 import com.ticketflow.domain.performance.repository.ShowtimeRepository;
 import com.ticketflow.fixture.HoldFixture;
 import com.ticketflow.fixture.HoldFixtureFactory;
@@ -68,6 +69,9 @@ class HoldConcurrencyTest {
     SeatRepository seatRepository;
 
     @Autowired
+    ZoneRepository zoneRepository;
+
+    @Autowired
     ShowtimeRepository showtimeRepository;
 
     @Autowired
@@ -79,6 +83,7 @@ class HoldConcurrencyTest {
         holdSeatRepository.deleteAllInBatch();
         holdRepository.deleteAllInBatch();
         seatRepository.deleteAllInBatch();
+        zoneRepository.deleteAllInBatch();
         showtimeRepository.deleteAllInBatch();
         performanceRepository.deleteAllInBatch();
         memberRepository.deleteAllInBatch();

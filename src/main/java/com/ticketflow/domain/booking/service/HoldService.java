@@ -16,8 +16,10 @@ import com.ticketflow.domain.booking.service.SeatOccupancyLock.LockedSeats;
 import com.ticketflow.domain.performance.dto.SeatPosition;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
+import com.ticketflow.domain.performance.entity.Zone;
 import com.ticketflow.domain.performance.service.SeatService;
 import com.ticketflow.domain.performance.service.ShowtimeService;
+import com.ticketflow.domain.performance.service.ZoneService;
 import com.ticketflow.global.exception.BusinessException;
 import com.ticketflow.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class HoldService {
 
     private final ShowtimeService showtimeService;
     private final SeatService seatService;
+    private final ZoneService zoneService;
     private final HoldRepository holdRepository;
     private final HoldSeatRepository holdSeatRepository;
     private final SeatOccupancyLock seatOccupancyLock;
@@ -75,12 +78,12 @@ public class HoldService {
     }
 
     @Transactional(readOnly = true)
-    public List<SeatResponse> getSeats(Long showtimeId) {
-        Showtime showtime = showtimeService.findShowtime(showtimeId);
-        List<SeatPosition> seats = seatService.findSeatPositions(showtime);
+    public List<SeatResponse> getSeats(Long zoneId) {
+        Zone zone = zoneService.findZone(zoneId);
+        List<SeatPosition> seats = seatService.findSeatPositions(zone);
         //좌석Id : 좌석 상태
-        Map<Long, SeatStatus> occupiedSeatStatuses = findOccupiedSeatStatuses(showtimeId, now());
-        return toSeatResponses(seats, showtime.getPrice(), occupiedSeatStatuses);
+        Map<Long, SeatStatus> occupiedSeatStatuses = findOccupiedSeatStatuses(zoneId, now());
+        return toSeatResponses(seats, zone.getShowtime().getPrice(), occupiedSeatStatuses);
     }
 
     @Transactional(readOnly = true)
@@ -107,8 +110,8 @@ public class HoldService {
                         Collectors.mapping(HoldSeat::getSeat, Collectors.toList())));
     }
 
-    private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long showtimeId, LocalDateTime now) {
-        return holdSeatRepository.findOccupyingByShowtimeId(showtimeId, HoldStatus.RESERVED, HoldStatus.HELD, now).stream()
+    private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long zoneId, LocalDateTime now) {
+        return holdSeatRepository.findOccupyingByZoneId(zoneId, HoldStatus.RESERVED, HoldStatus.HELD, now).stream()
                 .collect(Collectors.toMap(OccupiedSeat::seatId, OccupiedSeat::seatStatus));
     }
 

@@ -1,5 +1,5 @@
 import exec from 'k6/execution';
-import { holdWithRetry, lookupAdjacentPairs, scenarioSuccess } from './lib.js';
+import { holdWithRetry, lookupAdjacentPairs, pickZone, scenarioSuccess } from './lib.js';
 
 const SHOWTIME_ID = Number(__ENV.SHOWTIME_ID || 1);
 const ACTIVE_MEMBERS = Number(__ENV.ACTIVE_MEMBERS || 50);
@@ -17,10 +17,11 @@ export const options = {
 
 export default function () {
     const memberId = exec.vu.idInTest;
-    const available = lookupAdjacentPairs(SHOWTIME_ID, memberId);
+    const zoneId = pickZone(SHOWTIME_ID, memberId);
+    const available = zoneId === null ? null : lookupAdjacentPairs(zoneId, memberId);
     if (available === null) {
         scenarioSuccess.add(false);
         return;
     }
-    scenarioSuccess.add(holdWithRetry(SHOWTIME_ID, memberId, available));
+    scenarioSuccess.add(holdWithRetry(SHOWTIME_ID, zoneId, memberId, available));
 }

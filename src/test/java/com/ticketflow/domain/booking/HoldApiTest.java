@@ -71,7 +71,7 @@ class HoldApiTest {
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.seats[*].id").value(containsInAnyOrder(
                         fixture.seatIds().stream().map(Long::intValue).toArray())))
-                .andExpect(jsonPath("$.seats[*].row").value(containsInAnyOrder("A", "A", "A", "A")))
+                .andExpect(jsonPath("$.seats[*].row").value(containsInAnyOrder("1", "1", "1", "1")))
                 .andExpect(jsonPath("$.seats[*].number").value(containsInAnyOrder(1, 2, 3, 4)))
                 .andExpect(jsonPath("$.expiresAt").value("2026-10-01T10:05:00"));
     }
@@ -260,7 +260,7 @@ class HoldApiTest {
                                 """.formatted(List.of(seatIds.get(0), seatIds.get(1)))))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].number").value(contains(1, 2, 3)))
                 .andExpect(jsonPath("$[*].status").value(contains("HELD", "HELD", "AVAILABLE")));
@@ -281,7 +281,7 @@ class HoldApiTest {
 
         testClock.advance(Duration.ofMinutes(5));
 
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].status").value(contains("AVAILABLE", "AVAILABLE")));
     }
