@@ -29,6 +29,12 @@ public class ShowtimeService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.SHOWTIME_NOT_FOUND));
     }
 
+    public void validateShowtimeExists(Long showtimeId) {
+        if (!showtimeRepository.existsById(showtimeId)) {
+            throw new BusinessException(ErrorCode.SHOWTIME_NOT_FOUND);
+        }
+    }
+
     private List<Showtime> findShowtimesOf(Long performanceId) {
         return showtimeRepository.findByPerformanceIdOrderByStartsAtAsc(performanceId);
     }
