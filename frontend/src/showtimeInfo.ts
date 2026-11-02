@@ -7,7 +7,7 @@ export async function loadShowtime(performanceId: string, showtimeId: string) {
   return { title: performance?.title ?? '공연', showtime };
 }
 
-export async function loadShowtimeWithZones(performanceId: string, showtimeId: string) {
-  const [info, zones] = await Promise.all([loadShowtime(performanceId, showtimeId), api.zones(showtimeId)]);
+export async function loadShowtimeWithZones(performanceId: string, showtimeId: string, entryPass: string) {
+  const [info, zones] = await Promise.all([loadShowtime(performanceId, showtimeId), api.zones(showtimeId, entryPass)]);
   return { ...info, zones };
 }
