@@ -29,7 +29,9 @@ HOLD_URI = re.compile(r'^/api/showtimes/\d+/holds$')
 WARMUP_SHOWTIME = 2
 SEAT_COUNTS = [250, 500, 750, 1000]
 SEATS_PER_ROW = 25
-ZONES = [('A', 1, 8), ('B', 9, 17), ('C', 18, 25)]
+ZONE_LAYOUTS = {1: [('A', 1, 25)], 3: [('A', 1, 8), ('B', 9, 17), ('C', 18, 25)]}
+ZONES = ZONE_LAYOUTS[3]
+RESULT_SUFFIX = ''
 WARMUP_SEATS = 2000
 
 PEAK_START = 10
@@ -381,7 +383,7 @@ def ladder(session, seats):
     cap = seats // 2
     trials = []
     for n in ladder_steps(cap):
-        run_trial(session, seats, '단계', 'ladder', n, trials, f'peak_ladder_seats{seats:04d}.csv')
+        run_trial(session, seats, '단계', 'ladder', n, trials, f'peak_ladder_seats{seats:04d}{RESULT_SUFFIX}.csv')
 
 
 def ladder_steps(cap):
@@ -398,7 +400,7 @@ def peak(session, seats):
 
     def trial(search, n):
         return run_trial(session, seats, f'탐색 {search}', f's{search}', n, trials,
-                         f'peak_trials_seats{seats:04d}.csv', search=search)
+                         f'peak_trials_seats{seats:04d}{RESULT_SUFFIX}.csv', search=search)
 
     def find_n_max(search, low, high):
         passed, failed = 0, None
@@ -438,7 +440,7 @@ def peak(session, seats):
     admission = cap if admit_all else (int(min(values) * (1 - spread)) if min(values) else 0)
     report = {'seats': seats, 'cap': cap, 'searches': results, 'spread': spread,
               'admit_all': admit_all, 'admission': admission}
-    (RESULTS / f'peak_result_seats{seats:04d}.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    (RESULTS / f'peak_result_seats{seats:04d}{RESULT_SUFFIX}.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
     verdict = f'상한 {cap}명까지 모두 통과 → 모두 들여보내도 된다' if admit_all else f'입장 인원 {admission}'
     log(f'{seats}석: N_max {values}, 편차 {spread:.1%}, {verdict}')
 
@@ -457,10 +459,13 @@ def main():
     parser.add_argument('--seats', type=int, nargs='+', choices=SEAT_COUNTS, default=SEAT_COUNTS)
     parser.add_argument('--skip-build', action='store_true')
     parser.add_argument('--target', choices=['local', 'aws'], default='local')
+    parser.add_argument('--zones', type=int, choices=sorted(ZONE_LAYOUTS), default=3)
     args = parser.parse_args()
 
-    global TARGET, RESULTS
+    global TARGET, RESULTS, ZONES, RESULT_SUFFIX
     TARGET = targets.create(args.target)
+    ZONES = ZONE_LAYOUTS[args.zones]
+    RESULT_SUFFIX = f'_zones{args.zones}'
     if args.target == 'aws':
         RESULTS = RESULTS / 'aws'
     session = OUT / datetime.now().strftime(f'%Y%m%d-%H%M%S-{args.target}')
