@@ -18,11 +18,16 @@ public class ShowtimeService {
     private final ShowtimeRepository showtimeRepository;
 
     @Transactional(readOnly = true)
-    public List<ShowtimeResponse> getShowtimes(Long performanceId) {
+    public List<ShowtimeResponse.Item> getShowtimes(Long performanceId) {
         //공연이 존재하는 지 존재하지 않는다면 예외
         performanceService.validatePerformanceExists(performanceId);
 
         return toResponses(findShowtimesOf(performanceId));
+    }
+
+    @Transactional(readOnly = true)
+    public ShowtimeResponse.BookingOpen getShowtime(Long showtimeId) {
+        return ShowtimeResponse.BookingOpen.from(findShowtime(showtimeId));
     }
 
     public Showtime findShowtime(Long showtimeId) {
@@ -41,9 +46,9 @@ public class ShowtimeService {
         return showtimeRepository.findByPerformanceIdOrderByStartsAtAsc(performanceId);
     }
 
-    private List<ShowtimeResponse> toResponses(List<Showtime> showtimes) {
+    private List<ShowtimeResponse.Item> toResponses(List<Showtime> showtimes) {
         return showtimes.stream()
-                .map(ShowtimeResponse::from)
+                .map(ShowtimeResponse.Item::from)
                 .toList();
     }
 }
