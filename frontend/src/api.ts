@@ -2,9 +2,11 @@ export type Member = { id: number; email: string; name: string };
 export type Login = { accessToken: string };
 export type Performance = { id: number; title: string };
 export type Showtime = { id: number; startsAt: string; bookingOpenAt: string; price: number };
+export type Zone = { id: number; name: string };
 export type SeatStatus = 'AVAILABLE' | 'HELD' | 'RESERVED';
 export type Seat = { id: number; row: string; number: number; price: number; status: SeatStatus };
 export type HoldSeat = { id: number; row: string; number: number };
+export type ReservedSeat = HoldSeat & { zoneName: string };
 export type Hold = { id: number; seats: HoldSeat[]; expiresAt: string };
 export type HoldCancellation = { id: number; status: 'CANCELLED' };
 export type Reservation = { id: number; holdId: number; memberId: number };
@@ -14,7 +16,7 @@ export type MyReservation = {
   performanceTitle: string;
   showtimeId: number;
   startsAt: string;
-  seats: HoldSeat[];
+  seats: ReservedSeat[];
   totalPrice: number;
   status: MyReservationStatus;
 };
@@ -102,7 +104,8 @@ export const api = {
   me: () => read<Member>('/api/members/me'),
   performances: () => read<Performance[]>('/api/performances'),
   showtimes: (performanceId: string) => read<Showtime[]>(`/api/performances/${performanceId}/showtimes`),
-  seats: (showtimeId: string) => read<Seat[]>(`/api/showtimes/${showtimeId}/seats`),
+  zones: (showtimeId: string) => read<Zone[]>(`/api/showtimes/${showtimeId}/zones`),
+  zoneSeats: (zoneId: string) => read<Seat[]>(`/api/zones/${zoneId}/seats`),
   hold: (showtimeId: string, seatIds: number[]) =>
     write<Hold>(`/api/showtimes/${showtimeId}/holds`, {
       method: 'POST',

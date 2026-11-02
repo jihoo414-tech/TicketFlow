@@ -5,9 +5,11 @@ import com.ticketflow.domain.member.repository.MemberRepository;
 import com.ticketflow.domain.performance.entity.Performance;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
+import com.ticketflow.domain.performance.entity.Zone;
 import com.ticketflow.domain.performance.repository.PerformanceRepository;
 import com.ticketflow.domain.performance.repository.SeatRepository;
 import com.ticketflow.domain.performance.repository.ShowtimeRepository;
+import com.ticketflow.domain.performance.repository.ZoneRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +25,7 @@ public class HoldFixtureFactory {
 
     private final PerformanceRepository performanceRepository;
     private final ShowtimeRepository showtimeRepository;
+    private final ZoneRepository zoneRepository;
     private final SeatRepository seatRepository;
     private final MemberRepository memberRepository;
 
@@ -34,10 +37,11 @@ public class HoldFixtureFactory {
                 BOOKING_OPEN_AT,
                 50000
         ));
+        Zone zone = zoneRepository.save(new Zone(showtime, "A구역", 1));
         List<Seat> seats = seatRepository.saveAll(IntStream.rangeClosed(1, seatCount)
-                .mapToObj(seatNo -> new Seat(showtime, "A", seatNo))
+                .mapToObj(seatNo -> new Seat(zone, "1", seatNo))
                 .toList());
         Member member = memberRepository.save(TestMembers.member("회원1"));
-        return new HoldFixture(showtime, seats, member);
+        return new HoldFixture(showtime, zone, seats, member);
     }
 }

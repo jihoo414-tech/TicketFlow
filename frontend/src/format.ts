@@ -20,7 +20,7 @@ export function formatPrice(price: number): string {
 }
 
 export function formatSeat(seat: { row: string; number: number }): string {
-  return `${seat.row}${seat.number}`;
+  return `${seat.row}열 ${seat.number}번`;
 }
 
 export function formatRemaining(ms: number): string {

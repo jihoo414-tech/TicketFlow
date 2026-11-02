@@ -183,7 +183,7 @@ class MemberApiTest {
     void 좌석_조회는_로그인하지_않아도_된다() throws Exception {
         HoldFixture fixture = holdFixtureFactory.createHoldFixture(1);
 
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
                 .andExpect(status().isOk());
     }
 

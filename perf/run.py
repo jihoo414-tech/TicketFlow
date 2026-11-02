@@ -23,12 +23,15 @@ OUT = PERF / 'out'
 RESULTS = ROOT / 'docs' / 'performance'
 MAIN_SHOWTIME = 1
 TARGET = None
-SEATS_URI = re.compile(r'^/api/showtimes/\d+/seats$')
+SEATS_URI = re.compile(r'^/api/zones/\d+/seats$')
 HOLD_URI = re.compile(r'^/api/showtimes/\d+/holds$')
 
 WARMUP_SHOWTIME = 2
 SEAT_COUNTS = [250, 500, 750, 1000]
 SEATS_PER_ROW = 25
+ZONE_LAYOUTS = {1: [('A', 1, 25)], 3: [('A', 1, 8), ('B', 9, 17), ('C', 18, 25)]}
+ZONES = ZONE_LAYOUTS[3]
+RESULT_SUFFIX = ''
 WARMUP_SEATS = 2000
 
 PEAK_START = 10
@@ -79,12 +82,15 @@ def wait_for_app():
 
 
 def seed_seats(showtime_id, count):
+    zones = ', '.join(f"({showtime_id}, '{name}', {order})" for order, (name, _, _) in enumerate(ZONES, start=1))
+    zone_of_seat = ' '.join(f"WHEN MOD(n, {SEATS_PER_ROW}) + 1 <= {last} THEN '{name}'" for name, _, last in ZONES)
     mysql(f"""
+        INSERT INTO zone (showtime_id, name, display_order) VALUES {zones};
         SET SESSION cte_max_recursion_depth = {count};
-        INSERT INTO seat (showtime_id, seat_row, seat_no)
+        INSERT INTO seat (showtime_id, zone_id, seat_row, seat_no)
         WITH RECURSIVE seq (n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM seq WHERE n < {count - 1})
-        SELECT {showtime_id}, CONCAT('R', LPAD(FLOOR(n / {SEATS_PER_ROW}) + 1, 3, '0')), MOD(n, {SEATS_PER_ROW}) + 1
-        FROM seq""")
+        SELECT {showtime_id}, z.id, CAST(FLOOR(n / {SEATS_PER_ROW}) + 1 AS CHAR), MOD(n, {SEATS_PER_ROW}) + 1
+        FROM seq JOIN zone z ON z.showtime_id = {showtime_id} AND z.name = CASE {zone_of_seat} END""")
 
 
 def k6(script, run_dir, env):
@@ -232,6 +238,7 @@ def summarize(run_dir, collector, started, ended, access_lines):
     k6_frame = read_k6(run_dir)
     durations = k6_frame[k6_frame.metric_name == 'http_req_duration']
     seats = durations[durations.name == 'seats'].metric_value
+    zones = durations[durations.name == 'zones'].metric_value
     holds = durations[durations.name == 'hold']
     window = max(durations.timestamp.max() - durations.timestamp.min(), 1.0)
     counter = lambda metric: float(k6_frame[k6_frame.metric_name == metric].metric_value.sum())
@@ -246,6 +253,7 @@ def summarize(run_dir, collector, started, ended, access_lines):
         'seats_p50_ms': percentile(seats, 50), 'seats_p95_ms': percentile(seats, 95), 'seats_p99_ms': percentile(seats, 99),
         'hold_p50_ms': percentile(holds.metric_value, 50), 'hold_p95_ms': percentile(holds.metric_value, 95),
         'hold_p99_ms': percentile(holds.metric_value, 99),
+        'zones_p95_ms': percentile(zones, 95),
         'rps': requests / window,
         'hold_success': int(counter('hold_success')),
         'hold_conflict': int(counter('hold_conflict')),
@@ -375,7 +383,7 @@ def ladder(session, seats):
     cap = seats // 2
     trials = []
     for n in ladder_steps(cap):
-        run_trial(session, seats, '단계', 'ladder', n, trials, f'peak_ladder_seats{seats:04d}.csv')
+        run_trial(session, seats, '단계', 'ladder', n, trials, f'peak_ladder_seats{seats:04d}{RESULT_SUFFIX}.csv')
 
 
 def ladder_steps(cap):
@@ -392,7 +400,7 @@ def peak(session, seats):
 
     def trial(search, n):
         return run_trial(session, seats, f'탐색 {search}', f's{search}', n, trials,
-                         f'peak_trials_seats{seats:04d}.csv', search=search)
+                         f'peak_trials_seats{seats:04d}{RESULT_SUFFIX}.csv', search=search)
 
     def find_n_max(search, low, high):
         passed, failed = 0, None
@@ -432,7 +440,7 @@ def peak(session, seats):
     admission = cap if admit_all else (int(min(values) * (1 - spread)) if min(values) else 0)
     report = {'seats': seats, 'cap': cap, 'searches': results, 'spread': spread,
               'admit_all': admit_all, 'admission': admission}
-    (RESULTS / f'peak_result_seats{seats:04d}.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    (RESULTS / f'peak_result_seats{seats:04d}{RESULT_SUFFIX}.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
     verdict = f'상한 {cap}명까지 모두 통과 → 모두 들여보내도 된다' if admit_all else f'입장 인원 {admission}'
     log(f'{seats}석: N_max {values}, 편차 {spread:.1%}, {verdict}')
 
@@ -451,10 +459,13 @@ def main():
     parser.add_argument('--seats', type=int, nargs='+', choices=SEAT_COUNTS, default=SEAT_COUNTS)
     parser.add_argument('--skip-build', action='store_true')
     parser.add_argument('--target', choices=['local', 'aws'], default='local')
+    parser.add_argument('--zones', type=int, choices=sorted(ZONE_LAYOUTS), default=3)
     args = parser.parse_args()
 
-    global TARGET, RESULTS
+    global TARGET, RESULTS, ZONES, RESULT_SUFFIX
     TARGET = targets.create(args.target)
+    ZONES = ZONE_LAYOUTS[args.zones]
+    RESULT_SUFFIX = f'_zones{args.zones}'
     if args.target == 'aws':
         RESULTS = RESULTS / 'aws'
     session = OUT / datetime.now().strftime(f'%Y%m%d-%H%M%S-{args.target}')
