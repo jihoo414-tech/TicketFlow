@@ -13,6 +13,7 @@ public enum ErrorCode {
     HOLD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 선점입니다."),
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 예매입니다."),
     SEAT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 좌석이 포함되어 있습니다."),
+    ZONE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 구역입니다."),
 
 
 

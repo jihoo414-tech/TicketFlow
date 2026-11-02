@@ -5,10 +5,12 @@ import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-d
 import Layout from './components/Layout';
 import { MemberProvider, useMember } from './member';
 import AuthPage from './pages/AuthPage';
+import PaymentPage from './pages/PaymentPage';
 import PerformanceListPage from './pages/PerformanceListPage';
 import ReservationListPage from './pages/ReservationListPage';
 import SeatPage from './pages/SeatPage';
 import ShowtimeListPage from './pages/ShowtimeListPage';
+import ZonePage from './pages/ZonePage';
 import './index.css';
 
 function RequireLogin({ children }: { children: ReactNode }) {
@@ -31,7 +33,9 @@ function AppRoutes() {
       <Route element={<Layout />}>
         <Route index element={<PerformanceListPage />} />
         <Route path="performances/:performanceId" element={<ShowtimeListPage />} />
-        <Route path="performances/:performanceId/showtimes/:showtimeId" element={<SeatPage />} />
+        <Route path="performances/:performanceId/showtimes/:showtimeId" element={<ZonePage />} />
+        <Route path="performances/:performanceId/showtimes/:showtimeId/zones/:zoneId" element={<SeatPage />} />
+        <Route path="performances/:performanceId/showtimes/:showtimeId/payment" element={<RequireLogin><PaymentPage /></RequireLogin>} />
         <Route path="reservations" element={<RequireLogin><ReservationListPage /></RequireLogin>} />
         <Route path="login" element={<AuthPage mode="login" />} />
         <Route path="signup" element={<AuthPage mode="signup" />} />

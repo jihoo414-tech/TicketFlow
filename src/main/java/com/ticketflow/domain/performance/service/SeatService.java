@@ -2,7 +2,7 @@ package com.ticketflow.domain.performance.service;
 
 import com.ticketflow.domain.performance.dto.SeatPosition;
 import com.ticketflow.domain.performance.entity.Seat;
-import com.ticketflow.domain.performance.entity.Showtime;
+import com.ticketflow.domain.performance.entity.Zone;
 import com.ticketflow.domain.performance.repository.SeatRepository;
 import com.ticketflow.global.exception.BusinessException;
 import com.ticketflow.global.exception.ErrorCode;
@@ -18,8 +18,8 @@ public class SeatService {
     private final SeatRepository seatRepository;
 
     @Transactional(readOnly = true)
-    public List<SeatPosition> findSeatPositions(Showtime showtime) {
-        return seatRepository.findByShowtimeIdOrderBySeatRowAscSeatNoAsc(showtime.getId());
+    public List<SeatPosition> findSeatPositions(Zone zone) {
+        return seatRepository.findPositionsByZoneId(zone.getId());
     }
 
     @Transactional

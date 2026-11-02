@@ -1,23 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, type Hold, type Reservation, type Seat } from './api';
-import { parseLocalDateTime } from './format';
-import { loadStoredHold, removeStoredHold, storeHold } from './holdStorage';
+import { api, type Seat } from './api';
+import { loadStoredHold, storeHold, type StoredHold } from './holdStorage';
 import { useMember } from './member';
 import { toApiError } from './useLoad';
 
 export const MAX_SEATS = 4;
 
-function seatLimitNotice(seatLimit: number) {
-  if (seatLimit === 0) {
-    return `이 회차는 이미 ${MAX_SEATS}석을 예매해 더 선택할 수 없습니다.`;
-  }
-  if (seatLimit < MAX_SEATS) {
-    return `이미 예매한 좌석이 있어 이 회차는 ${seatLimit}석까지 선택할 수 있습니다.`;
-  }
-  return `좌석은 최대 ${MAX_SEATS}석까지 선택할 수 있습니다.`;
-}
-
-function useNow(intervalMs: number) {
+export function useNow(intervalMs: number) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), intervalMs);
@@ -26,33 +15,37 @@ function useNow(intervalMs: number) {
   return now;
 }
 
-export function useSeatBooking(showtimeId: string) {
+function seatLimitNotice(seatLimit: number) {
+  if (seatLimit === 0) {
+    return `이 회차는 이미 ${MAX_SEATS}석을 예매해 더 선택할 수 없습니다.`;
+  }
+  return `남은 매수는 ${seatLimit}석입니다.`;
+}
+
+export function useSeatBooking(showtimeId: string, zoneId: string, zoneName: string) {
   const now = useNow(1000);
   const { memberId } = useMember();
 
   const [seats, setSeats] = useState<Seat[] | null>(null);
   const [seatError, setSeatError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [hold, setHold] = useState<Hold | null>(null);
+  const [hold, setHold] = useState<StoredHold | null>(null);
   const [holding, setHolding] = useState(false);
-  const [reservation, setReservation] = useState<Reservation | null>(null);
-  const [paying, setPaying] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [seatLimit, setSeatLimit] = useState(MAX_SEATS);
   const [notice, setNotice] = useState<string | null>(null);
   const dismissNotice = useCallback(() => setNotice(null), []);
 
   const reloadSeats = useCallback(async () => {
     try {
-      const loaded = await api.seats(showtimeId);
+      const loaded = await api.zoneSeats(zoneId);
       const available = new Set(loaded.filter(seat => seat.status === 'AVAILABLE').map(seat => seat.id));
       setSeats(loaded);
       setSeatError(null);
       setSelectedIds(prev => new Set([...prev].filter(id => available.has(id))));
     } catch (error) {
-      setSeatError(toApiError(error).status === 404 ? '존재하지 않는 회차입니다.' : '좌석 배치도를 불러오지 못했습니다.');
+      setSeatError(toApiError(error).status === 404 ? '존재하지 않는 구역입니다.' : '좌석 배치도를 불러오지 못했습니다.');
     }
-  }, [showtimeId]);
+  }, [zoneId]);
 
   useEffect(() => {
     reloadSeats();
@@ -76,18 +69,10 @@ export function useSeatBooking(showtimeId: string) {
 
   useEffect(() => {
     setHold(loadStoredHold(memberId, showtimeId, Date.now()));
-    setReservation(null);
   }, [memberId, showtimeId]);
 
-  const holdExpired = hold !== null && reservation === null && parseLocalDateTime(hold.expiresAt).getTime() <= now;
-  useEffect(() => {
-    if (holdExpired) {
-      removeStoredHold(memberId, showtimeId);
-      reloadSeats();
-    }
-  }, [holdExpired, memberId, showtimeId, reloadSeats]);
-
-  const myHoldSeatIds = new Set(hold && !holdExpired ? hold.seats.map(seat => seat.id) : []);
+  const activeHold = hold !== null && loadStoredHold(memberId, showtimeId, now) !== null ? hold : null;
+  const myHoldSeatIds = new Set(activeHold ? activeHold.seats.map(seat => seat.id) : []);
 
   const toggleSeat = (seat: Seat) => {
     const next = new Set(selectedIds);
@@ -102,18 +87,17 @@ export function useSeatBooking(showtimeId: string) {
     setSelectedIds(next);
   };
 
-  const submitHold = async () => {
+  const submitHold = async (): Promise<boolean> => {
     if (memberId === null) {
-      setNotice('로그인 후 선점할 수 있습니다.');
-      return;
+      setNotice('로그인 후 좌석을 선택할 수 있습니다.');
+      return false;
     }
     setHolding(true);
     try {
       const created = await api.hold(showtimeId, [...selectedIds]);
-      setHold(created);
-      storeHold(memberId, showtimeId, created);
+      storeHold(memberId, showtimeId, { ...created, zoneName });
       setSelectedIds(new Set());
-      await reloadSeats();
+      return true;
     } catch (error) {
       const apiError = toApiError(error);
       setNotice(apiError.message);
@@ -123,57 +107,12 @@ export function useSeatBooking(showtimeId: string) {
       if (apiError.code === 'SEAT_LIMIT_EXCEEDED') {
         await reloadSeatLimit();
       }
+      return false;
     } finally {
       setHolding(false);
     }
   };
 
-  const submitPay = async () => {
-    if (!hold) {
-      return;
-    }
-    setPaying(true);
-    try {
-      setReservation(await api.pay(hold.id));
-      removeStoredHold(memberId, showtimeId);
-      await Promise.all([reloadSeats(), reloadSeatLimit()]);
-    } catch (error) {
-      const apiError = toApiError(error);
-      setNotice(apiError.message);
-      if (apiError.code === 'HOLD_EXPIRED') {
-        await reloadSeats();
-      }
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  const cancelHold = async () => {
-    if (!hold || paying || cancelling) return;
-    setCancelling(true);
-    try {
-      await api.cancelHold(hold.id);
-      setHold(null);
-      removeStoredHold(memberId, showtimeId);
-      setNotice('선점을 취소했습니다.');
-      await reloadSeats();
-    } catch (error) {
-      const apiError = toApiError(error);
-      setNotice(apiError.message);
-      if (apiError.code === 'HOLD_EXPIRED' || apiError.code === 'HOLD_ALREADY_CANCELLED') {
-        await reloadSeats();
-      }
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const resetHold = () => {
-    removeStoredHold(memberId, showtimeId);
-    setHold(null);
-    setReservation(null);
-  };
-
-  return { now, holdExpired, seats, seatError, selectedIds, seatLimit, myHoldSeatIds, hold, holding, reservation, paying, cancelling, notice,
-    dismissNotice, reloadSeats, toggleSeat, submitHold, submitPay, cancelHold, resetHold };
+  return { now, seats, seatError, selectedIds, seatLimit, activeHold, myHoldSeatIds, holding, notice,
+    dismissNotice, reloadSeats, toggleSeat, submitHold };
 }

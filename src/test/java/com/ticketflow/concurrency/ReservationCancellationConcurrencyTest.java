@@ -12,6 +12,7 @@ import com.ticketflow.domain.member.entity.Member;
 import com.ticketflow.domain.member.repository.MemberRepository;
 import com.ticketflow.domain.performance.repository.PerformanceRepository;
 import com.ticketflow.domain.performance.repository.SeatRepository;
+import com.ticketflow.domain.performance.repository.ZoneRepository;
 import com.ticketflow.domain.performance.repository.ShowtimeRepository;
 import com.ticketflow.fixture.HoldFixture;
 import com.ticketflow.fixture.HoldFixtureFactory;
@@ -71,6 +72,9 @@ class ReservationCancellationConcurrencyTest {
     SeatRepository seatRepository;
 
     @Autowired
+    ZoneRepository zoneRepository;
+
+    @Autowired
     ShowtimeRepository showtimeRepository;
 
     @Autowired
@@ -86,6 +90,7 @@ class ReservationCancellationConcurrencyTest {
         holdSeatRepository.deleteAllInBatch();
         holdRepository.deleteAllInBatch();
         seatRepository.deleteAllInBatch();
+        zoneRepository.deleteAllInBatch();
         showtimeRepository.deleteAllInBatch();
         performanceRepository.deleteAllInBatch();
         memberRepository.deleteAllInBatch();
@@ -161,7 +166,7 @@ class ReservationCancellationConcurrencyTest {
     }
 
     private List<String> seatStatuses(HoldFixture fixture) throws Exception {
-        String body = mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+        String body = mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

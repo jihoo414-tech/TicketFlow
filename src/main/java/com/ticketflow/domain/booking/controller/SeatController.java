@@ -14,10 +14,10 @@ public class SeatController {
 
     private final SeatStatusCache seatStatusCache;
 
-    @GetMapping("/api/showtimes/{showtimeId}/seats")
-    public ResponseEntity<byte[]> getSeats(@PathVariable Long showtimeId) {
+    @GetMapping("/api/zones/{zoneId}/seats")
+    public ResponseEntity<byte[]> getSeats(@PathVariable Long zoneId) {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(seatStatusCache.getSeats(showtimeId));
+                .body(seatStatusCache.getSeats(zoneId));
     }
 }

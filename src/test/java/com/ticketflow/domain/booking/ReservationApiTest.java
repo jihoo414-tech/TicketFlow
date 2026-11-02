@@ -100,7 +100,7 @@ class ReservationApiTest {
 
         testClock.advance(Duration.ofMinutes(5));
 
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].number").value(contains(1, 2, 3)))
                 .andExpect(jsonPath("$[*].status").value(contains("RESERVED", "RESERVED", "AVAILABLE")));

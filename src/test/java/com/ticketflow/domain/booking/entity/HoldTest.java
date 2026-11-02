@@ -5,6 +5,7 @@ import com.ticketflow.fixture.TestMembers;
 import com.ticketflow.domain.performance.entity.Performance;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
+import com.ticketflow.domain.performance.entity.Zone;
 import com.ticketflow.global.exception.BusinessException;
 import com.ticketflow.global.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ class HoldTest {
             BOOKING_OPEN_AT,
             50000
     );
+    private static final Zone ZONE = new Zone(SHOWTIME, "A구역", 1);
 
     @Test
     void 예매_오픈_시각_1초_전에는_선점을_만들_수_없다() {
@@ -163,7 +165,7 @@ class HoldTest {
 
     private static List<Seat> seats(int count) {
         return IntStream.rangeClosed(1, count)
-                .mapToObj(seatNo -> new Seat(SHOWTIME, "A", seatNo))
+                .mapToObj(seatNo -> new Seat(ZONE, "1", seatNo))
                 .toList();
     }
 }

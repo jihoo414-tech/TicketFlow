@@ -5,9 +5,11 @@ import com.ticketflow.domain.member.repository.MemberRepository;
 import com.ticketflow.domain.performance.entity.Performance;
 import com.ticketflow.domain.performance.entity.Seat;
 import com.ticketflow.domain.performance.entity.Showtime;
+import com.ticketflow.domain.performance.entity.Zone;
 import com.ticketflow.domain.performance.repository.PerformanceRepository;
 import com.ticketflow.domain.performance.repository.SeatRepository;
 import com.ticketflow.domain.performance.repository.ShowtimeRepository;
+import com.ticketflow.domain.performance.repository.ZoneRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -27,8 +29,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LocalDataInitializer implements ApplicationRunner {
 
-    private static final List<String> SEAT_ROWS = List.of("A", "B", "C", "D", "E");
-    private static final int SEATS_PER_ROW = 10;
+    private static final int ROW_COUNT = 5;
+    private static final int SEATS_PER_ZONE_ROW = 5;
+    private static final List<String> ZONE_NAMES = List.of("A구역", "B구역");
     private static final String MEMBER_PASSWORD = "password1234";
 
     private final Clock clock;
@@ -36,6 +39,7 @@ public class LocalDataInitializer implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final PerformanceRepository performanceRepository;
     private final ShowtimeRepository showtimeRepository;
+    private final ZoneRepository zoneRepository;
     private final SeatRepository seatRepository;
 
     @Override
@@ -60,15 +64,18 @@ public class LocalDataInitializer implements ApplicationRunner {
         ));
 
         for (Showtime showtime : showtimes) {
-            seatRepository.saveAll(seatsOf(showtime));
+            for (int order = 0; order < ZONE_NAMES.size(); order++) {
+                Zone zone = zoneRepository.save(new Zone(showtime, ZONE_NAMES.get(order), order + 1));
+                seatRepository.saveAll(seatsOf(zone, order * SEATS_PER_ZONE_ROW + 1));
+            }
         }
     }
 
-    private List<Seat> seatsOf(Showtime showtime) {
+    private List<Seat> seatsOf(Zone zone, int firstSeatNo) {
         List<Seat> seats = new ArrayList<>();
-        for (String row : SEAT_ROWS) {
-            for (int no = 1; no <= SEATS_PER_ROW; no++) {
-                seats.add(new Seat(showtime, row, no));
+        for (int row = 1; row <= ROW_COUNT; row++) {
+            for (int no = firstSeatNo; no < firstSeatNo + SEATS_PER_ZONE_ROW; no++) {
+                seats.add(new Seat(zone, String.valueOf(row), no));
             }
         }
         return seats;

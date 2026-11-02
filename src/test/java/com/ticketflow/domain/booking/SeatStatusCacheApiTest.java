@@ -61,7 +61,7 @@ class SeatStatusCacheApiTest {
         hold(fixture);
         testTicker.advance(Duration.ofMillis(999));
 
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].status").value(contains("AVAILABLE", "AVAILABLE")));
     }
@@ -75,13 +75,13 @@ class SeatStatusCacheApiTest {
         hold(fixture);
         testTicker.advance(Duration.ofSeconds(1));
 
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].status").value(contains("HELD", "HELD")));
     }
 
     private void lookUpSeats(HoldFixture fixture) throws Exception {
-        mockMvc.perform(get("/api/showtimes/{showtimeId}/seats", fixture.showtime().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].status").value(contains("AVAILABLE", "AVAILABLE")));
     }

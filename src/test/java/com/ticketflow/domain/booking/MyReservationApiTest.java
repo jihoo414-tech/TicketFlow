@@ -68,7 +68,7 @@ class MyReservationApiTest {
                 .andExpect(jsonPath("$[0].performanceTitle").value("레미제라블"))
                 .andExpect(jsonPath("$[0].showtimeId").value(fixture.showtime().getId()))
                 .andExpect(jsonPath("$[0].startsAt").value("2026-11-01T19:00:00"))
-                .andExpect(jsonPath("$[0].seats[0].row").value("A"))
+                .andExpect(jsonPath("$[0].seats[0].row").value("1"))
                 .andExpect(jsonPath("$[0].seats[0].number").value(1))
                 .andExpect(jsonPath("$[0].seats[1].number").value(2))
                 .andExpect(jsonPath("$[0].totalPrice").value(100000))

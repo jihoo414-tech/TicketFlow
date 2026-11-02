@@ -1,11 +1,13 @@
 import type { Hold } from './api';
+
+export type StoredHold = Hold & { zoneName?: string };
 import { parseLocalDateTime } from './format';
 
 function keyOf(memberId: number, showtimeId: string): string {
   return `ticketflow.hold.${memberId}.${showtimeId}`;
 }
 
-export function loadStoredHold(memberId: number | null, showtimeId: string, now: number): Hold | null {
+export function loadStoredHold(memberId: number | null, showtimeId: string, now: number): StoredHold | null {
   if (memberId === null) {
     return null;
   }
@@ -14,14 +16,14 @@ export function loadStoredHold(memberId: number | null, showtimeId: string, now:
     if (!value) {
       return null;
     }
-    const hold = JSON.parse(value) as Hold;
+    const hold = JSON.parse(value) as StoredHold;
     return parseLocalDateTime(hold.expiresAt).getTime() > now ? hold : null;
   } catch {
     return null;
   }
 }
 
-export function storeHold(memberId: number | null, showtimeId: string, hold: Hold) {
+export function storeHold(memberId: number | null, showtimeId: string, hold: StoredHold) {
   if (memberId === null) {
     return;
   }
