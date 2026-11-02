@@ -67,16 +67,12 @@ public class Hold {
     }
 
     public Reservation reserve(LocalDateTime paidAt) {
-        validateNotReserved();
-        validateNotCancelled();
         validateHeld(paidAt);
         this.status = HoldStatus.RESERVED;
         return new Reservation(this, member);
     }
 
     public void cancel(LocalDateTime now) {
-        validateNotReserved();
-        validateNotCancelled();
         validateHeld(now);
         this.status = HoldStatus.CANCELLED;
     }
@@ -102,10 +98,12 @@ public class Hold {
     }
 
     public boolean isOccupying(LocalDateTime now) {
-        return status == HoldStatus.RESERVED || isHeld(now);
+        return isReserved() || isHeld(now);
     }
 
     private void validateHeld(LocalDateTime now) {
+        validateNotReserved();
+        validateNotCancelled();
         if (!isHeld(now)) {
             throw new BusinessException(ErrorCode.HOLD_EXPIRED);
         }

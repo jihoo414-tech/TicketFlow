@@ -7,6 +7,8 @@ import org.hibernate.validator.constraints.UniqueElements;
 import java.util.List;
 
 public record HoldRequest(
-        @NotEmpty @UniqueElements List<@NotNull Long> seatIds
+        @NotEmpty(message = "INVALID_SEAT_COUNT")
+        @UniqueElements(message = "DUPLICATE_SEAT")
+        List<@NotNull(message = "INVALID_SEAT_ID") Long> seatIds
 ) {
 }

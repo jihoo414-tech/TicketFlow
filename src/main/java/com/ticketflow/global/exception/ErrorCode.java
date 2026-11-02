@@ -42,7 +42,7 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.UNAUTHORIZED, "존재하지 않는 회원입니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입한 이메일입니다."),
     INVALID_EMAIL(HttpStatus.BAD_REQUEST, "이메일 형식이 올바르지 않습니다."),
-    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호는 8자 이상이어야 합니다."),
+    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호는 영문, 숫자, 특수문자로 8자 이상 20자 이하로 입력해 주세요."),
     INVALID_MEMBER_NAME(HttpStatus.BAD_REQUEST, "이름은 1자 이상 50자 이하로 입력해 주세요.");
 
     private final HttpStatus status;

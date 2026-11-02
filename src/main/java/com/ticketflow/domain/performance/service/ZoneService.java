@@ -20,7 +20,7 @@ public class ZoneService {
 
     @Transactional(readOnly = true)
     public List<ZoneResponse> getZones(Long showtimeId) {
-        showtimeService.findShowtime(showtimeId);
+        showtimeService.validateShowtimeExists(showtimeId);
         return toResponses(findZonesOf(showtimeId));
     }
 

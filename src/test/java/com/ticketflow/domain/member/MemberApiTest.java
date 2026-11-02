@@ -95,6 +95,29 @@ class MemberApiTest {
     }
 
     @Test
+    void 비밀번호가_20자보다_길면_가입할_수_없다() throws Exception {
+        signup("member@ticketflow.test", "password1234password1", "회원1")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PASSWORD"));
+    }
+
+    @Test
+    void 비밀번호에_영문_숫자_특수문자_외의_문자가_있으면_가입할_수_없다() throws Exception {
+        signup("member@ticketflow.test", "password한글1234", "회원1")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PASSWORD"));
+        signup("member@ticketflow.test", "pass word1234", "회원1")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PASSWORD"));
+    }
+
+    @Test
+    void 비밀번호는_영문_숫자_특수문자로_20자까지_가입할_수_있다() throws Exception {
+        signup("member@ticketflow.test", "Password!@#$1234^&*(", "회원1")
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void 이름이_비어_있으면_가입할_수_없다() throws Exception {
         signup("member@ticketflow.test", "password1234", " ")
                 .andExpect(status().isBadRequest())
