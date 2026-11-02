@@ -164,9 +164,9 @@ docs/                 불변식, 동시성 케이스, ADR
 
 - **품질 기준**: 예매 오픈 피크에서 좌석 조회·선점 p95 500ms 이하, 시스템 오류 0건([ADR 0017](docs/adr/0017-performance-quality-criteria.md))
 - **환경**: 자원을 제한한 로컬 컨테이너(앱·DB 각 2 vCPU)에서 반복하고, AWS에서 최종 확인한다([ADR 0016](docs/adr/0016-load-test-on-limited-local-containers.md))
-- **시나리오**: N명이 동시에 들어와 좌석을 조회하고, 0.5~1초 뒤 같은 열의 붙은 2석을 선점한다. 409면 다시 조회해 고른다
+- **시나리오**: N명이 동시에 들어와 구역을 무작위로 골라 좌석을 조회하고, 0.5~1초 뒤 같은 열의 붙은 2석을 선점한다. 409면 다시 조회해 고른다
 
-지금까지 한 개선과 결과는 [`docs/performance/seat-count-report.md`](docs/performance/seat-count-report.md)에 있다.
+로컬 개선 이력은 [`seat-count-report.md`](docs/performance/seat-count-report.md), AWS 결과는 [`aws-report.md`](docs/performance/aws-report.md)에 있다.
 
 | 단계 | 내용 | 500석 160명 |
 |---|---|---|
@@ -174,13 +174,15 @@ docs/                 불변식, 동시성 케이스, ADR
 | 1초 캐시 | 좌석 조회 응답을 회차별로 1초 공유([ADR 0020](docs/adr/0020-share-seat-status-with-short-local-cache.md)) | 조회 484ms, 선점 1,063ms, 실패 |
 | 선점 커넥션 | OSIV 끄기, 선점 API의 앞단 회원 확인 생략([ADR 0007](docs/adr/0007-member-id-argument-resolver.md)) | 조회 295ms, 선점 349ms, **통과** |
 
+AWS(앱과 같은 서브넷의 k6, k6 p95 판정)에서 좌석 수별 입장 인원은 250석 전원, 500석 57명, 750석 71명이었다. 조회가 먼저 무너져서 좌석을 구역으로 나눴고([ADR 0023](docs/adr/0023-show-seats-by-zone.md)), 750석의 N_max가 75~92명에서 **196~270명**, 입장 인원이 58명에서 **122명**으로 올랐다.
+
 ```bash
-python perf/run.py ladder --seats 250 500 750 1000   # 좌석 수마다 10, 20, 40 … 좌석/2명을 한 번씩
-python perf/run.py peak --seats 1000                 # N_max 탐색(10명 시작, 2명 간격, 3회)
+python perf/run.py ladder --seats 750 --zones 3              # 단계 측정: 10, 20, 40 … 좌석/2명을 한 번씩
+python perf/run.py peak --target aws --seats 750 --zones 3   # N_max 탐색(10명 시작, 2명 간격, 3회)
 python perf/plot.py                                  # docs/performance/*.png
 ```
 
-실행할 때마다 `docker-compose.aws.yml`로 DB를 새로 만든다. 요구사항: Docker, k6, Python 3 + pandas + matplotlib, 저장소 루트의 `.env`. AWS에서 잴 때는 `--target aws`를 붙이고 `perf/aws.env.example`을 `.env.aws`로 복사해 채운다(추가로 `pip install pymysql boto3`). 판정은 서버 쪽 처리 시간(Tomcat 접근 로그) p95로 한다.
+실행할 때마다 `docker-compose.aws.yml`로 DB를 새로 만든다. 요구사항: Docker, k6, Python 3 + pandas + matplotlib, 저장소 루트의 `.env`. AWS에서 잴 때는 `--target aws`를 붙이고 `perf/aws.env.example`을 `.env.aws`로 복사해 채운다(추가로 `pip install pymysql boto3`). `--zones 1`은 구역 없음과 같은 대조군이다. 판정은 k6 p95로 하고, 서버 쪽 처리 시간(Tomcat 접근 로그)을 함께 기록한다.
 
 ## 문서
 
