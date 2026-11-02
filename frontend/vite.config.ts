@@ -10,6 +10,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '^/api/showtimes/\\d+/queue': 'http://localhost:8081',
       '/api': 'http://localhost:8080',
     },
   },

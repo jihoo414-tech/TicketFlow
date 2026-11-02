@@ -1,6 +1,8 @@
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api';
 import StatusMessage from '../components/StatusMessage';
+import Toast from '../components/Toast';
 import { formatDateTime, formatPrice, isBookingOpen } from '../format';
 import { useLoad } from '../useLoad';
 
@@ -14,9 +16,13 @@ export default function ShowtimeListPage() {
   const { performanceId = '' } = useParams();
   const state = useLoad(() => loadPerformanceShowtimes(performanceId), [performanceId]);
   const now = Date.now();
+  const location = useLocation();
+  const [notice, setNotice] = useState<string | null>((location.state as { notice?: string } | null)?.notice ?? null);
+  const dismissNotice = useCallback(() => setNotice(null), []);
 
   return (
     <section>
+      <Toast message={notice} onDismiss={dismissNotice} />
       <Link to="/" className="text-sm text-gray-500 hover:text-violet-700">← 공연 목록</Link>
       {state.status === 'loading' && <div className="mt-4"><StatusMessage>불러오는 중...</StatusMessage></div>}
       {state.status === 'error' && (
@@ -36,7 +42,7 @@ export default function ShowtimeListPage() {
               return (
                 <li key={showtime.id}>
                   <Link
-                    to={`/performances/${performanceId}/showtimes/${showtime.id}`}
+                    to={`/performances/${performanceId}/showtimes/${showtime.id}/queue`}
                     className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-4 transition hover:border-violet-400 hover:shadow-sm"
                   >
                     <div>

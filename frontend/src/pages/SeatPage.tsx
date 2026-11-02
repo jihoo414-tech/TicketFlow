@@ -1,11 +1,14 @@
+import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Seat } from '../api';
+import EntryPassTimer from '../components/EntryPassTimer';
 import SeatMap from '../components/SeatMap';
 import SelectionPanel from '../components/SelectionPanel';
 import StatusMessage from '../components/StatusMessage';
 import Toast from '../components/Toast';
 import { formatDateTime, isBookingOpen } from '../format';
 import { loadShowtimeWithZones } from '../showtimeInfo';
+import { useEntryPass } from '../useEntryPass';
 import { useLoad } from '../useLoad';
 import { useSeatBooking } from '../useSeatBooking';
 
@@ -16,11 +19,21 @@ function sortSeats(seats: Seat[]): Seat[] {
 export default function SeatPage() {
   const { performanceId = '', showtimeId = '', zoneId = '' } = useParams();
   const navigate = useNavigate();
-  const info = useLoad(() => loadShowtimeWithZones(performanceId, showtimeId), [performanceId, showtimeId]);
+  const { entryPass, remainingMs, handleEntryPassError } = useEntryPass(performanceId, showtimeId);
+  const info = useLoad(() => loadShowtimeWithZones(performanceId, showtimeId, entryPass ?? ''), [performanceId, showtimeId, entryPass]);
   const zoneName = info.status === 'done' ? info.data.zones.find(zone => String(zone.id) === zoneId)?.name ?? '' : '';
   const { now, seats, seatError, selectedIds, seatLimit, activeHold, myHoldSeatIds, holding, notice,
-    dismissNotice, reloadSeats, toggleSeat, submitHold } = useSeatBooking(showtimeId, zoneId, zoneName);
+    dismissNotice, reloadSeats, toggleSeat, submitHold } = useSeatBooking(showtimeId, zoneId, zoneName, entryPass ?? '', handleEntryPassError);
 
+  useEffect(() => {
+    if (info.status === 'error') {
+      handleEntryPassError(info.error);
+    }
+  }, [info, handleEntryPassError]);
+
+  if (entryPass === null) {
+    return null;
+  }
   if (info.status === 'loading') {
     return <StatusMessage>불러오는 중...</StatusMessage>;
   }
@@ -49,6 +62,7 @@ export default function SeatPage() {
           <p className="mt-1 flex items-center gap-2 text-gray-600">
             {formatDateTime(showtime.startsAt)}
             {!bookingOpen && <span className="rounded-full bg-gray-100 px-3 py-0.5 text-xs font-semibold text-gray-600">오픈 전</span>}
+            <EntryPassTimer remainingMs={remainingMs} />
           </p>
         </div>
         <button

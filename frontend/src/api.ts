@@ -22,6 +22,9 @@ export type MyReservation = {
 };
 export type ReservationCancellation = { id: number; status: 'RESERVATION_CANCELLED' };
 export type RemainingSeatCount = { remainingSeatCount: number };
+export type QueueStatus =
+  | { status: 'WAITING'; position: number; retryAfterSeconds: number }
+  | { status: 'ADMITTED'; entryPass: string; expiresAt: string };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -35,6 +38,8 @@ export class ApiError extends Error {
 }
 
 const AUTH_ERROR_CODES = new Set(['AUTH_TOKEN_MISSING', 'AUTH_TOKEN_INVALID', 'AUTH_TOKEN_EXPIRED', 'MEMBER_NOT_FOUND']);
+export const ENTRY_PASS_ERROR_CODES = new Set(['ENTRY_PASS_REQUIRED', 'ENTRY_PASS_INVALID', 'ENTRY_PASS_EXPIRED', 'ENTRY_PASS_USED']);
+const QUEUE_URL = import.meta.env.VITE_QUEUE_URL ?? '';
 
 let accessToken: string | null = null;
 let onUnauthorized: () => void = () => {};
@@ -75,12 +80,17 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 
 const pendingReads = new Map<string, Promise<unknown>>();
 
-function read<T>(url: string): Promise<T> {
-  const key = JSON.stringify([accessToken, url]);
+function entryPassHeader(entryPass: string): HeadersInit {
+  return { 'X-Entry-Token': entryPass };
+}
+
+function read<T>(url: string, entryPass?: string): Promise<T> {
+  const key = JSON.stringify([accessToken, url, entryPass]);
   const existing = pendingReads.get(key);
   if (existing) return existing as Promise<T>;
 
-  const pending = request<T>(url).finally(() => {
+  const init = entryPass ? { headers: entryPassHeader(entryPass) } : {};
+  const pending = request<T>(url, init).finally(() => {
     if (pendingReads.get(key) === pending) pendingReads.delete(key);
   });
   pendingReads.set(key, pending);
@@ -104,13 +114,20 @@ export const api = {
   me: () => read<Member>('/api/members/me'),
   performances: () => read<Performance[]>('/api/performances'),
   showtimes: (performanceId: string) => read<Showtime[]>(`/api/performances/${performanceId}/showtimes`),
-  zones: (showtimeId: string) => read<Zone[]>(`/api/showtimes/${showtimeId}/zones`),
-  zoneSeats: (zoneId: string) => read<Seat[]>(`/api/zones/${zoneId}/seats`),
-  hold: (showtimeId: string, seatIds: number[]) =>
+  zones: (showtimeId: string, entryPass: string) => read<Zone[]>(`/api/showtimes/${showtimeId}/zones`, entryPass),
+  zoneSeats: (zoneId: string, entryPass: string) => read<Seat[]>(`/api/zones/${zoneId}/seats`, entryPass),
+  hold: (showtimeId: string, seatIds: number[], entryPass: string) =>
     write<Hold>(`/api/showtimes/${showtimeId}/holds`, {
       method: 'POST',
+      headers: entryPassHeader(entryPass),
       body: JSON.stringify({ seatIds }),
     }),
+  joinQueue: (showtimeId: string) =>
+    write<QueueStatus>(`${QUEUE_URL}/api/showtimes/${showtimeId}/queue`, { method: 'POST' }),
+  queueStatus: (showtimeId: string) =>
+    request<QueueStatus>(`${QUEUE_URL}/api/showtimes/${showtimeId}/queue/me`),
+  leaveQueue: (showtimeId: string) =>
+    write<void>(`${QUEUE_URL}/api/showtimes/${showtimeId}/queue/me`, { method: 'DELETE' }),
   cancelHold: (holdId: number) => write<HoldCancellation>(`/api/holds/${holdId}/cancellation`, { method: 'POST' }),
   pay: (holdId: number) => write<Reservation>(`/api/holds/${holdId}/payment`, { method: 'POST' }),
   remainingSeatCount: (showtimeId: string) =>

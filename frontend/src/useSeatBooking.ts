@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, type Seat } from './api';
+import { removeEntryPass } from './entryPassStorage';
 import { loadStoredHold, storeHold, type StoredHold } from './holdStorage';
 import { useMember } from './member';
 import { toApiError } from './useLoad';
@@ -22,7 +23,8 @@ function seatLimitNotice(seatLimit: number) {
   return `남은 매수는 ${seatLimit}석입니다.`;
 }
 
-export function useSeatBooking(showtimeId: string, zoneId: string, zoneName: string) {
+export function useSeatBooking(showtimeId: string, zoneId: string, zoneName: string,
+                               entryPass: string, onEntryPassError: (error: unknown) => boolean) {
   const now = useNow(1000);
   const { memberId } = useMember();
 
@@ -37,15 +39,18 @@ export function useSeatBooking(showtimeId: string, zoneId: string, zoneName: str
 
   const reloadSeats = useCallback(async () => {
     try {
-      const loaded = await api.zoneSeats(zoneId);
+      const loaded = await api.zoneSeats(zoneId, entryPass);
       const available = new Set(loaded.filter(seat => seat.status === 'AVAILABLE').map(seat => seat.id));
       setSeats(loaded);
       setSeatError(null);
       setSelectedIds(prev => new Set([...prev].filter(id => available.has(id))));
     } catch (error) {
+      if (onEntryPassError(error)) {
+        return;
+      }
       setSeatError(toApiError(error).status === 404 ? '존재하지 않는 구역입니다.' : '좌석 배치도를 불러오지 못했습니다.');
     }
-  }, [zoneId]);
+  }, [zoneId, entryPass, onEntryPassError]);
 
   useEffect(() => {
     reloadSeats();
@@ -94,11 +99,15 @@ export function useSeatBooking(showtimeId: string, zoneId: string, zoneName: str
     }
     setHolding(true);
     try {
-      const created = await api.hold(showtimeId, [...selectedIds]);
+      const created = await api.hold(showtimeId, [...selectedIds], entryPass);
       storeHold(memberId, showtimeId, { ...created, zoneName });
+      removeEntryPass(memberId, showtimeId);
       setSelectedIds(new Set());
       return true;
     } catch (error) {
+      if (onEntryPassError(error)) {
+        return false;
+      }
       const apiError = toApiError(error);
       setNotice(apiError.message);
       if (apiError.code === 'SEAT_ALREADY_HELD') {
