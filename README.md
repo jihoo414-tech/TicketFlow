@@ -131,6 +131,7 @@ Testcontainers가 MySQL 컨테이너를 띄우므로 Docker가 켜져 있어야 
 | GET | `/api/members/me` | 현재 회원 | ✓ |
 | GET | `/api/performances` | 공연 목록 | |
 | GET | `/api/performances/{performanceId}/showtimes` | 공연의 회차 목록 | |
+| GET | `/api/showtimes/{showtimeId}` | 회차의 예매 오픈 시각 (대기열 서버가 쓴다, [ADR 0024](docs/adr/0024-admit-members-through-queue-server.md)) | |
 | GET | `/api/showtimes/{showtimeId}/zones` | 회차의 구역 목록 (이름, 표시 순서) | |
 | GET | `/api/zones/{zoneId}/seats` | 구역의 좌석 상태 (구역별로 1초 동안 같은 응답을 공유한다, [ADR 0023](docs/adr/0023-show-seats-by-zone.md)) | |
 | POST | `/api/showtimes/{showtimeId}/holds` | 선점 (`{"seatIds": [1, 2]}`) | ✓ |

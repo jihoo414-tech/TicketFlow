@@ -17,7 +17,12 @@ public class ShowtimeController {
     private final ShowtimeService showtimeService;
 
     @GetMapping("/api/performances/{performanceId}/showtimes")
-    public ResponseEntity<List<ShowtimeResponse>> getShowtimes(@PathVariable Long performanceId) {
+    public ResponseEntity<List<ShowtimeResponse.Item>> getShowtimes(@PathVariable Long performanceId) {
         return ResponseEntity.ok(showtimeService.getShowtimes(performanceId));
+    }
+
+    @GetMapping("/api/showtimes/{showtimeId}")
+    public ResponseEntity<ShowtimeResponse.BookingOpen> getShowtime(@PathVariable Long showtimeId) {
+        return ResponseEntity.ok(showtimeService.getShowtime(showtimeId));
     }
 }
