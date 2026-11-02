@@ -35,7 +35,7 @@ public interface HoldSeatRepository extends JpaRepository<HoldSeat, Long> {
     List<Long> findSeatIdsByHoldId(@Param("holdId") Long holdId);
 
     @Query("""
-            select hs from HoldSeat hs join fetch hs.seat s
+            select hs from HoldSeat hs join fetch hs.seat s join fetch s.zone
             where hs.hold.id in :holdIds
             order by length(s.seatRow), s.seatRow, s.seatNo
             """)

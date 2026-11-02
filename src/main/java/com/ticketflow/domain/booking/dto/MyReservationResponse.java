@@ -14,7 +14,7 @@ public record MyReservationResponse(
         String performanceTitle,
         Long showtimeId,
         LocalDateTime startsAt,
-        List<HoldSeatResponse> seats,
+        List<ReservedSeatResponse> seats,
         int totalPrice,
         HoldStatus status
 ) {
@@ -28,7 +28,7 @@ public record MyReservationResponse(
                 showtime.getId(),
                 showtime.getStartsAt(),
                 seats.stream()
-                        .map(HoldSeatResponse::from)
+                        .map(ReservedSeatResponse::from)
                         .toList(),
                 showtime.getPrice() * seats.size(),
                 hold.getStatus()
