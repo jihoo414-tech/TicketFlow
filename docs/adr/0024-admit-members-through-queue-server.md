@@ -32,6 +32,27 @@ AWS 측정(ADR 0023)에서 750석 3구역의 입장 인원은 122명이었고, 1
 - **줄**: 회차와 상관없이 **하나**다. 도착 순서대로 번호표를 준다. 회차를 등록할 때 오픈 시각이 겹치지 않게 할 계획이라, 보통은 한 회차의 회원만 줄에 있다.
 - **회차 정보**: 대기열 서버는 회차가 있는지와 예매 오픈 시각만 알면 된다. 예매 서버의 공개 API `GET /api/showtimes/{showtimeId}`(새로 만든다)로 받아 회차별로 캐시한다.
 
+## queue 모듈 구조
+
+```
+queue/
+├── build.gradle      webmvc, security, oauth2-resource-server, actuator. JPA·DB 없음
+└── src/main/java/com/ticketflow/queue/
+    ├── QueueApplication
+    ├── domain/queue/
+    │   ├── controller/   줄 서기·순번·대기 취소, 자리 비움 내부 API
+    │   ├── service/      줄과 입장 처리, 입장권 발급
+    │   └── client/       예매 서버의 회차 조회 (ADR 0015)
+    └── global/
+        ├── config/
+        └── exception/
+```
+
+- 루트 프로젝트(예매 서버)는 그대로 두고 `settings.gradle`에 `queue`만 더한다. 플러그인 버전은 루트를 따른다. 포트는 8081이다.
+- 패키지는 예매 서버와 같은 모양(ADR 0001)으로 둔다. 저장소가 없으므로 `repository`는 없고, `entity`는 JPA 엔티티 자리라 두지 않는다. 줄의 상태와 규칙을 담는 클래스는 `service`에 두고 시계를 주입받는 순수 Java로 만든다.
+- 응답 형식(`ProblemDetail` + `code`)과 회원 JWT 검증 설정은 예매 서버에서 **복사**한다. 공통 모듈은 두지 않는다. 두 서버는 HTTP로만 이어지고 겹치는 코드는 200줄 안팎이다. 응답 형식이 바뀌면 두 곳을 고친다.
+- 브라우저는 대기열 서버를 **직접** 부른다. 프론트는 빌드 설정 `VITE_QUEUE_URL`로 주소를 받고, 대기열 서버는 CORS로 예매 서버의 출처만 허용한다. 로컬에서는 Vite 프록시가 `/api/showtimes/*/queue`만 8081로 보낸다. 예매 서버가 대신 전달하면 순번 폴링이 예매 서버를 지나가 서버를 나눈 이유가 사라진다.
+
 ## 입장권
 
 - 대기열 서버가 **입장권 전용 키**로 서명한 JWT(HS256). 회원 JWT와 키를 나눠, 한쪽 키가 새도 다른 쪽 토큰을 만들 수 없게 한다.

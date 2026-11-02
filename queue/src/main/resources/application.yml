@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: ticketflow-queue
+
+server:
+  port: 8081
