@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import StatusMessage from '../components/StatusMessage';
 import Toast from '../components/Toast';
 import { formatDateTime, formatRemaining, formatSeat, parseLocalDateTime } from '../format';
@@ -15,7 +15,14 @@ export default function PaymentPage() {
   const info = useLoad(() => loadShowtime(performanceId, showtimeId), [performanceId, showtimeId]);
   const { now, hold, holdExpired, reservation, paying, cancelling, cancelled, notice, dismissNotice, submitPay, cancelHold } =
     useHoldPayment(showtimeId);
-  const zonesPath = `/performances/${performanceId}/showtimes/${showtimeId}`;
+  const navigate = useNavigate();
+  const showtimesPath = `/performances/${performanceId}`;
+
+  useEffect(() => {
+    if (cancelled) {
+      navigate(showtimesPath, { replace: true, state: { notice: '선점을 취소했습니다. 다시 예매하려면 줄을 서 주세요.' } });
+    }
+  }, [cancelled, navigate, showtimesPath]);
 
   if (info.status === 'loading') {
     return <StatusMessage>불러오는 중...</StatusMessage>;
@@ -45,18 +52,18 @@ export default function PaymentPage() {
         <p className="mt-1 text-sm text-gray-500">예매 번호 {reservation.id}</p>
         <div className="mt-6 flex gap-3">
           <Link to="/reservations" className={primaryButton}>내 예매 보기</Link>
-          <Link to={zonesPath} className="rounded-lg border border-gray-300 px-4 py-2.5 font-semibold text-gray-700">다른 좌석 고르기</Link>
+          <Link to={showtimesPath} className="rounded-lg border border-gray-300 px-4 py-2.5 font-semibold text-gray-700">회차 목록</Link>
         </div>
       </>,
     );
   }
 
   if (!hold || cancelled || holdExpired) {
-    const message = cancelled ? '선점을 취소했습니다.' : holdExpired ? '결제 시간이 지나 좌석이 다시 열렸습니다.' : '선택한 좌석이 없습니다.';
+    const message = holdExpired ? '결제 시간이 지나 좌석이 다시 열렸습니다.' : '선택한 좌석이 없습니다.';
     return card(
       <>
         <p className="text-gray-700">{message}</p>
-        <Link to={zonesPath} className={`mt-6 inline-block ${primaryButton}`}>좌석 고르기</Link>
+        <Link to={showtimesPath} className={`mt-6 inline-block ${primaryButton}`}>회차 목록</Link>
       </>,
     );
   }
@@ -81,7 +88,7 @@ export default function PaymentPage() {
           disabled={paying || cancelling}
           className="rounded-lg border border-gray-300 px-4 py-2.5 font-semibold text-gray-700 hover:border-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {cancelling ? '취소 중...' : '선점 취소'}
+          {cancelling ? '취소 중...' : '취소'}
         </button>
         <button type="button" onClick={submitPay} disabled={paying || cancelling} className={primaryButton}>
           {paying ? '결제 중...' : '결제하기'}
