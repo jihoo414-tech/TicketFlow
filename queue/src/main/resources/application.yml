@@ -1,6 +1,25 @@
 spring:
   application:
     name: ticketflow-queue
+  mvc:
+    problemdetails:
+      enabled: true
 
 server:
   port: 8081
+
+jwt:
+  secret: ${JWT_SECRET}
+
+entry-pass:
+  secret: ${ENTRY_PASS_SECRET}
+
+queue:
+  admission-limit: 122
+  admits-per-second: 30
+  internal-secret: ${QUEUE_INTERNAL_SECRET}
+  cors:
+    allowed-origins: ${QUEUE_CORS_ALLOWED_ORIGINS:http://localhost:8080,http://localhost:5173}
+
+booking-server:
+  url: ${BOOKING_SERVER_URL:http://localhost:8080}
