@@ -48,11 +48,12 @@ export default function AuthPage({ mode }: { mode: Mode }) {
           <input type="email" required autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} className={inputClass} />
         </label>
         <label className="block space-y-1 text-sm">
-          <span className="text-gray-700">비밀번호{isLogin ? '' : ' (8자 이상)'}</span>
+          <span className="text-gray-700">비밀번호{isLogin ? '' : ' (영문, 숫자, 특수문자 8~20자)'}</span>
           <input
             type="password"
             required
             minLength={isLogin ? undefined : 8}
+            maxLength={isLogin ? undefined : 20}
             autoComplete={isLogin ? 'current-password' : 'new-password'}
             value={password}
             onChange={event => setPassword(event.target.value)}
