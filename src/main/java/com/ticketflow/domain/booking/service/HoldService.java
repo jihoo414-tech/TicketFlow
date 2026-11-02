@@ -89,7 +89,8 @@ public class HoldService {
     @Transactional(readOnly = true)
     public RemainingSeatCountResponse getRemainingSeatCount(Long memberId, Long showtimeId) {
         showtimeService.validateShowtimeExists(showtimeId);
-        return new RemainingSeatCountResponse(Hold.remainingSeatCount(countReservedSeats(memberId, showtimeId)));
+        long reservedSeatCount = countReservedSeats(memberId, showtimeId);
+        return new RemainingSeatCountResponse(Hold.remainingSeatCount(reservedSeatCount));
     }
 
     @Transactional(readOnly = true)
@@ -105,13 +106,15 @@ public class HoldService {
 
     @Transactional(readOnly = true)
     public Map<Long, List<Seat>> findSeatsByHoldIds(List<Long> holdIds) {
-        return holdSeatRepository.findAllWithSeatByHoldIdIn(holdIds).stream()
+        List<HoldSeat> holdSeats = holdSeatRepository.findAllWithSeatByHoldIdIn(holdIds);
+        return holdSeats.stream()
                 .collect(Collectors.groupingBy(holdSeat -> holdSeat.getHold().getId(),
                         Collectors.mapping(HoldSeat::getSeat, Collectors.toList())));
     }
 
     private Map<Long, SeatStatus> findOccupiedSeatStatuses(Long zoneId, LocalDateTime now) {
-        return holdSeatRepository.findOccupyingByZoneId(zoneId, HoldStatus.RESERVED, HoldStatus.HELD, now).stream()
+        List<OccupiedSeat> occupiedSeats = holdSeatRepository.findOccupyingByZoneId(zoneId, HoldStatus.RESERVED, HoldStatus.HELD, now);
+        return occupiedSeats.stream()
                 .collect(Collectors.toMap(OccupiedSeat::seatId, OccupiedSeat::seatStatus));
     }
 
@@ -122,7 +125,8 @@ public class HoldService {
     }
 
     private void validateNoActiveHold(Long memberId, Long showtimeId, LocalDateTime now) {
-        boolean hasActiveHold = holdRepository.findAllByMemberIdAndShowtimeId(memberId, showtimeId).stream()
+        List<Hold> memberHolds = holdRepository.findAllByMemberIdAndShowtimeId(memberId, showtimeId);
+        boolean hasActiveHold = memberHolds.stream()
                 .anyMatch(hold -> hold.isHeld(now));
         if (hasActiveHold) {
             throw new BusinessException(ErrorCode.HOLD_ALREADY_EXISTS);
@@ -130,15 +134,19 @@ public class HoldService {
     }
 
     private void validateSeatLimit(Long memberId, Long showtimeId, List<Seat> seats) {
-        Hold.validateSeatLimit(countReservedSeats(memberId, showtimeId), seats.size());
+        long reservedSeatCount = countReservedSeats(memberId, showtimeId);
+        Hold.validateSeatLimit(reservedSeatCount, seats.size());
     }
 
     private long countReservedSeats(Long memberId, Long showtimeId) {
         return holdSeatRepository.countByMemberIdAndShowtimeIdAndStatus(memberId, showtimeId, HoldStatus.RESERVED);
     }
 
+    //hold에 유효한 선점이 있는 지 확인한다.
+    //현재 모든 hold를 조회해서 메모리에서 판단하는데 추후 병목이라고 판단되면 db에서 조건을 넣어 한번에 가져오는 것으로 수행할 예정
     private void validateSeatsNotHeld(List<Long> seatIds, LocalDateTime now) {
-        boolean anyOccupied = holdSeatRepository.findAllWithHoldBySeatIdIn(seatIds).stream()
+        List<HoldSeat> seatHoldHistory = holdSeatRepository.findAllWithHoldBySeatIdIn(seatIds);
+        boolean anyOccupied = seatHoldHistory.stream()
                 .anyMatch(holdSeat -> holdSeat.isOccupying(now));
         if (anyOccupied) {
             throw new BusinessException(ErrorCode.SEAT_ALREADY_HELD);
@@ -150,9 +158,10 @@ public class HoldService {
     }
 
     private void saveHoldSeats(Hold hold, List<Seat> seats) {
-        holdSeatRepository.saveAll(seats.stream()
+        List<HoldSeat> holdSeats = seats.stream()
                 .map(seat -> new HoldSeat(hold, seat))
-                .toList());
+                .toList();
+        holdSeatRepository.saveAll(holdSeats);
     }
 
     private LocalDateTime now() {
