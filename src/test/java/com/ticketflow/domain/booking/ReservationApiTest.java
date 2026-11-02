@@ -3,6 +3,7 @@ package com.ticketflow.domain.booking;
 import com.jayway.jsonpath.JsonPath;
 import com.ticketflow.TestClock;
 import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.EntryPassTokens;
 import com.ticketflow.fixture.TestMembers;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.member.entity.Member;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.util.List;
 
+import static com.ticketflow.domain.admission.service.EntryPasses.ENTRY_TOKEN;
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -38,6 +40,9 @@ class ReservationApiTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EntryPassTokens entryPassTokens;
 
     @Autowired
     AuthHeaders authHeaders;
@@ -82,6 +87,7 @@ class ReservationApiTest {
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(otherMember.getId()))
+                        .header(ENTRY_TOKEN, entryPassTokens.issue(otherMember.getId(), fixture.showtime().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -100,7 +106,7 @@ class ReservationApiTest {
 
         testClock.advance(Duration.ofMinutes(5));
 
-        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
+        mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()).with(entryPassTokens.viewer(fixture.showtime().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].number").value(contains(1, 2, 3)))
                 .andExpect(jsonPath("$[*].status").value(contains("RESERVED", "RESERVED", "AVAILABLE")));
@@ -169,6 +175,7 @@ class ReservationApiTest {
 
         mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
+                        .header(ENTRY_TOKEN, entryPassTokens.issue(fixture.member().getId(), fixture.showtime().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
@@ -201,6 +208,7 @@ class ReservationApiTest {
     private Long hold(Member member, HoldFixture fixture, List<Long> seatIds) throws Exception {
         String body = mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(member.getId()))
+                        .header(ENTRY_TOKEN, entryPassTokens.issue(member.getId(), fixture.showtime().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}

@@ -3,6 +3,7 @@ package com.ticketflow.concurrency;
 import com.jayway.jsonpath.JsonPath;
 import com.ticketflow.TestClock;
 import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.EntryPassTokens;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.booking.repository.HoldRepository;
 import com.ticketflow.domain.booking.repository.HoldSeatRepository;
@@ -32,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static com.ticketflow.domain.admission.service.EntryPasses.ENTRY_TOKEN;
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -46,6 +48,9 @@ class HoldCancellationConcurrencyTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EntryPassTokens entryPassTokens;
 
     @Autowired
     AuthHeaders authHeaders;
@@ -163,7 +168,7 @@ class HoldCancellationConcurrencyTest {
     }
 
     private List<String> seatStatuses(HoldFixture fixture) throws Exception {
-        String body = mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()))
+        String body = mockMvc.perform(get("/api/zones/{zoneId}/seats", fixture.zone().getId()).with(entryPassTokens.viewer(fixture.showtime().getId())))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -173,6 +178,7 @@ class HoldCancellationConcurrencyTest {
     private Long hold(HoldFixture fixture) throws Exception {
         String body = mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(fixture.member().getId()))
+                        .header(ENTRY_TOKEN, entryPassTokens.issue(fixture.member().getId(), fixture.showtime().getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"seatIds": %s}
