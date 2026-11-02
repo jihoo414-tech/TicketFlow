@@ -17,7 +17,7 @@ public class PerformanceService {
     private final PerformanceRepository performanceRepository;
 
     @Transactional(readOnly = true)
-    public List<PerformanceResponse> getPerformances() {
+    public List<PerformanceResponse.Item> getPerformances() {
         return toResponses(findAllPerformances());
     }
 
@@ -31,9 +31,9 @@ public class PerformanceService {
         return performanceRepository.findAll();
     }
 
-    private List<PerformanceResponse> toResponses(List<Performance> performances) {
+    private List<PerformanceResponse.Item> toResponses(List<Performance> performances) {
         return performances.stream()
-                .map(PerformanceResponse::from)
+                .map(PerformanceResponse.Item::from)
                 .toList();
     }
 }

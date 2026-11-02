@@ -1,7 +1,7 @@
 package com.ticketflow.domain.member.controller;
 
-import com.ticketflow.domain.member.dto.LoginRequest;
-import com.ticketflow.domain.member.dto.LoginResponse;
+import com.ticketflow.domain.member.dto.MemberRequest;
+import com.ticketflow.domain.member.dto.MemberResponse;
 import com.ticketflow.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +16,8 @@ public class AuthController {
     private final MemberService memberService;
 
     @PostMapping("/api/auth/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        LoginResponse loginResponse = memberService.login(request.email(), request.password());
+    public ResponseEntity<MemberResponse.Login> login(@RequestBody MemberRequest.Login request) {
+        MemberResponse.Login loginResponse = memberService.login(request.email(), request.password());
 
         return ResponseEntity.ok(loginResponse);
     }

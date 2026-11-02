@@ -1,13 +1,19 @@
 package com.ticketflow.domain.performance.dto;
 
 import com.ticketflow.domain.performance.entity.Zone;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-public record ZoneResponse(
-        Long id,
-        String name
-) {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class ZoneResponse {
 
-    public static ZoneResponse from(Zone zone) {
-        return new ZoneResponse(zone.getId(), zone.getName());
+    public record Item(
+            Long id,
+            String name
+    ) {
+
+        public static Item from(Zone zone) {
+            return new Item(zone.getId(), zone.getName());
+        }
     }
 }

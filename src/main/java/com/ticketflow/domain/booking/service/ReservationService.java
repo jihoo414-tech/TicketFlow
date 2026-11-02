@@ -1,7 +1,5 @@
 package com.ticketflow.domain.booking.service;
 
-import com.ticketflow.domain.booking.dto.MyReservationResponse;
-import com.ticketflow.domain.booking.dto.ReservationCancellationResponse;
 import com.ticketflow.domain.booking.dto.ReservationResponse;
 import com.ticketflow.domain.booking.entity.Hold;
 import com.ticketflow.domain.booking.entity.Reservation;
@@ -28,7 +26,7 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public ReservationResponse pay(Long memberId, Long holdId) {
+    public ReservationResponse.Created pay(Long memberId, Long holdId) {
         LockedOccupancy locked = seatOccupancyLock.acquireMemberAndSeats(memberId, holdService.findSeatIds(holdId));
 
         Hold hold = holdService.findHold(holdId);
@@ -36,11 +34,11 @@ public class ReservationService {
 
         Reservation reservation = saveReservation(hold.reserve(locked.lockedAt()));
 
-        return ReservationResponse.from(reservation);
+        return ReservationResponse.Created.from(reservation);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public ReservationCancellationResponse cancel(Long memberId, Long reservationId) {
+    public ReservationResponse.Cancelled cancel(Long memberId, Long reservationId) {
         Reservation reservation = findReservation(reservationId);
         Long holdId = reservation.getHold().getId();
         LockedSeats locked = seatOccupancyLock.acquireSeats(holdService.findSeatIds(holdId));
@@ -49,11 +47,11 @@ public class ReservationService {
         validateReservationOwner(hold, memberId);
         hold.cancelReservation(locked.lockedAt());
 
-        return ReservationCancellationResponse.from(reservation);
+        return ReservationResponse.Cancelled.from(reservation);
     }
 
     @Transactional(readOnly = true)
-    public List<MyReservationResponse> getMyReservations(Long memberId) {
+    public List<ReservationResponse.Mine> getMyReservations(Long memberId) {
         return toMyReservationResponses(findReservationsOf(memberId));
     }
 
@@ -82,12 +80,12 @@ public class ReservationService {
         return reservationRepository.save(reservation);
     }
 
-    private List<MyReservationResponse> toMyReservationResponses(List<Reservation> reservations) {
+    private List<ReservationResponse.Mine> toMyReservationResponses(List<Reservation> reservations) {
         Map<Long, List<Seat>> seatsByHoldId = holdService.findSeatsByHoldIds(reservations.stream()
                 .map(reservation -> reservation.getHold().getId())
                 .toList());
         return reservations.stream()
-                .map(reservation -> MyReservationResponse.of(reservation, seatsByHoldId.get(reservation.getHold().getId())))
+                .map(reservation -> ReservationResponse.Mine.of(reservation, seatsByHoldId.get(reservation.getHold().getId())))
                 .toList();
     }
 }
