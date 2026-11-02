@@ -1,8 +1,10 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { releaseEntryPasses, showtimeInFlow } from '../entryPassRelease';
 import { useMember } from '../member';
 
 function MemberMenu() {
-  const { currentMember, ready, logout } = useMember();
+  const { memberId, currentMember, ready, logout } = useMember();
   const navigate = useNavigate();
 
   if (!ready) {
@@ -21,7 +23,7 @@ function MemberMenu() {
       <span className="text-gray-600">{currentMember.name}님</span>
       <button
         type="button"
-        onClick={() => { logout(); navigate('/'); }}
+        onClick={() => { releaseEntryPasses(memberId); logout(); navigate('/'); }}
         className="text-gray-500 hover:text-violet-700"
       >
         로그아웃
@@ -30,7 +32,18 @@ function MemberMenu() {
   );
 }
 
+function useReleaseEntryPassesOutsideFlow() {
+  const { memberId } = useMember();
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    releaseEntryPasses(memberId, showtimeInFlow(pathname));
+  }, [memberId, pathname]);
+}
+
 export default function Layout() {
+  useReleaseEntryPassesOutsideFlow();
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-gray-200 bg-white">
