@@ -29,6 +29,7 @@ public class SeatService {
         return seats;
     }
 
+    //없는 좌석이 섞여있는 것을 검증
     private void validateAllFound(List<Seat> seats, List<Long> seatIds) {
         if (seats.size() != seatIds.size()) {
             throw new BusinessException(ErrorCode.SEAT_NOT_FOUND);
