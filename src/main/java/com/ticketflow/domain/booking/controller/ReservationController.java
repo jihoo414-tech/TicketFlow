@@ -1,7 +1,5 @@
 package com.ticketflow.domain.booking.controller;
 
-import com.ticketflow.domain.booking.dto.MyReservationResponse;
-import com.ticketflow.domain.booking.dto.ReservationCancellationResponse;
 import com.ticketflow.domain.booking.dto.ReservationResponse;
 import com.ticketflow.domain.booking.service.ReservationService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,24 +20,24 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @PostMapping("/api/holds/{holdId}/payment")
-    public ResponseEntity<ReservationResponse> pay(@AuthenticationPrincipal Long memberId,
-                                                   @PathVariable Long holdId) {
-        ReservationResponse reservationResponse = reservationService.pay(memberId, holdId);
+    public ResponseEntity<ReservationResponse.Created> pay(@AuthenticationPrincipal Long memberId,
+                                                           @PathVariable Long holdId) {
+        ReservationResponse.Created reservationResponse = reservationService.pay(memberId, holdId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(reservationResponse);
     }
 
     @GetMapping("/api/members/me/reservations")
-    public ResponseEntity<List<MyReservationResponse>> getMyReservations(@AuthenticationPrincipal Long memberId) {
-        List<MyReservationResponse> myReservationResponseList = reservationService.getMyReservations(memberId);
+    public ResponseEntity<List<ReservationResponse.Mine>> getMyReservations(@AuthenticationPrincipal Long memberId) {
+        List<ReservationResponse.Mine> myReservationResponseList = reservationService.getMyReservations(memberId);
 
         return ResponseEntity.ok(myReservationResponseList);
     }
 
     @PostMapping("/api/reservations/{reservationId}/cancellation")
-    public ResponseEntity<ReservationCancellationResponse> cancel(@AuthenticationPrincipal Long memberId,
-                                                                  @PathVariable Long reservationId) {
-        ReservationCancellationResponse reservationCancellationResponse = reservationService.cancel(memberId, reservationId);
+    public ResponseEntity<ReservationResponse.Cancelled> cancel(@AuthenticationPrincipal Long memberId,
+                                                                @PathVariable Long reservationId) {
+        ReservationResponse.Cancelled reservationCancellationResponse = reservationService.cancel(memberId, reservationId);
 
         return ResponseEntity.ok(reservationCancellationResponse);
     }

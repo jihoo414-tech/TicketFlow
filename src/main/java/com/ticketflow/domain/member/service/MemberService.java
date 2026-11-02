@@ -1,6 +1,5 @@
 package com.ticketflow.domain.member.service;
 
-import com.ticketflow.domain.member.dto.LoginResponse;
 import com.ticketflow.domain.member.dto.MemberResponse;
 import com.ticketflow.domain.member.entity.Member;
 import com.ticketflow.domain.member.repository.MemberRepository;
@@ -21,21 +20,21 @@ public class MemberService {
     private final AccessTokenIssuer accessTokenIssuer;
 
     @Transactional
-    public MemberResponse signup(String email, String password, String name) {
+    public MemberResponse.Item signup(String email, String password, String name) {
         validateEmailNotTaken(email);
-        return MemberResponse.from(saveMember(new Member(email, passwordEncoder.encode(password), name)));
+        return MemberResponse.Item.from(saveMember(new Member(email, passwordEncoder.encode(password), name)));
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse login(String email, String password) {
+    public MemberResponse.Login login(String email, String password) {
         Member member = findMemberByEmail(email);
         validatePasswordMatches(member, password);
-        return new LoginResponse(accessTokenIssuer.issue(member.getId()));
+        return new MemberResponse.Login(accessTokenIssuer.issue(member.getId()));
     }
 
     @Transactional(readOnly = true)
-    public MemberResponse getMember(Long memberId) {
-        return MemberResponse.from(findMember(memberId));
+    public MemberResponse.Item getMember(Long memberId) {
+        return MemberResponse.Item.from(findMember(memberId));
     }
 
     @Transactional(readOnly = true)

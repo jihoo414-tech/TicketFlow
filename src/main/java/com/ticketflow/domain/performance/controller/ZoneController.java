@@ -17,7 +17,7 @@ public class ZoneController {
     private final ZoneService zoneService;
 
     @GetMapping("/api/showtimes/{showtimeId}/zones")
-    public ResponseEntity<List<ZoneResponse>> getZones(@PathVariable Long showtimeId) {
+    public ResponseEntity<List<ZoneResponse.Item>> getZones(@PathVariable Long showtimeId) {
         return ResponseEntity.ok(zoneService.getZones(showtimeId));
     }
 }
