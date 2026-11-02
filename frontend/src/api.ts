@@ -6,6 +6,7 @@ export type Zone = { id: number; name: string };
 export type SeatStatus = 'AVAILABLE' | 'HELD' | 'RESERVED';
 export type Seat = { id: number; row: string; number: number; price: number; status: SeatStatus };
 export type HoldSeat = { id: number; row: string; number: number };
+export type ReservedSeat = HoldSeat & { zoneName: string };
 export type Hold = { id: number; seats: HoldSeat[]; expiresAt: string };
 export type HoldCancellation = { id: number; status: 'CANCELLED' };
 export type Reservation = { id: number; holdId: number; memberId: number };
@@ -15,7 +16,7 @@ export type MyReservation = {
   performanceTitle: string;
   showtimeId: number;
   startsAt: string;
-  seats: HoldSeat[];
+  seats: ReservedSeat[];
   totalPrice: number;
   status: MyReservationStatus;
 };
