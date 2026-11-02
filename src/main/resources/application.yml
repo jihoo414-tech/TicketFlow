@@ -19,3 +19,12 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   access-token-ttl: 1h
+
+entry-pass:
+  secret: ${ENTRY_PASS_SECRET}
+
+queue:
+  internal-secret: ${QUEUE_INTERNAL_SECRET}
+
+queue-server:
+  url: ${QUEUE_SERVER_URL:http://localhost:8081}

@@ -2,6 +2,7 @@ package com.ticketflow.concurrency;
 
 import com.ticketflow.TestClock;
 import com.ticketflow.fixture.AuthHeaders;
+import com.ticketflow.fixture.EntryPassTokens;
 import com.ticketflow.fixture.TestMembers;
 import com.ticketflow.TestcontainersConfiguration;
 import com.ticketflow.domain.booking.repository.HoldRepository;
@@ -33,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
+import static com.ticketflow.domain.admission.service.EntryPasses.ENTRY_TOKEN;
 import static com.ticketflow.fixture.HoldFixtureFactory.BOOKING_OPEN_AT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,6 +48,9 @@ class HoldConcurrencyTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EntryPassTokens entryPassTokens;
 
     @Autowired
     AuthHeaders authHeaders;
@@ -161,6 +166,7 @@ class HoldConcurrencyTest {
             start.await();
             return mockMvc.perform(post("/api/showtimes/{showtimeId}/holds", fixture.showtime().getId())
                             .header(HttpHeaders.AUTHORIZATION, authHeaders.bearer(attempt.member().getId()))
+                            .header(ENTRY_TOKEN, entryPassTokens.issue(attempt.member().getId(), fixture.showtime().getId()))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"seatIds": %s}

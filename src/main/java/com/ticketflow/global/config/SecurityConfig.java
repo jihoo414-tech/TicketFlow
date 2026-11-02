@@ -25,7 +25,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/members", "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/performances/**", "/api/showtimes/*", "/api/showtimes/*/zones", "/api/zones/*/seats").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/performances/**", "/api/showtimes/*").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(resourceServer -> resourceServer

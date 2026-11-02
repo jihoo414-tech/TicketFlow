@@ -1,5 +1,7 @@
 package com.ticketflow.domain.performance.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.ticketflow.domain.performance.dto.ZoneResponse;
 import com.ticketflow.domain.performance.entity.Zone;
 import com.ticketflow.domain.performance.repository.ZoneRepository;
@@ -15,8 +17,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ZoneService {
 
+    private static final int MAXIMUM_ZONES = 300;
+
     private final ShowtimeService showtimeService;
     private final ZoneRepository zoneRepository;
+    private final Cache<Long, Long> showtimeIdsByZone = Caffeine.newBuilder()
+            .maximumSize(MAXIMUM_ZONES)
+            .build();
 
     @Transactional(readOnly = true)
     public List<ZoneResponse.Item> getZones(Long showtimeId) {
@@ -28,6 +35,10 @@ public class ZoneService {
     public Zone findZone(Long zoneId) {
         return zoneRepository.findWithShowtimeById(zoneId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ZONE_NOT_FOUND));
+    }
+
+    public Long findShowtimeIdOf(Long zoneId) {
+        return showtimeIdsByZone.get(zoneId, id -> findZone(id).getShowtime().getId());
     }
 
     private List<Zone> findZonesOf(Long showtimeId) {
