@@ -1,0 +1,24 @@
+{
+  "seats": 750,
+  "cap": 375,
+  "searches": [
+    {
+      "search": 1,
+      "n_max": 75,
+      "bounded": true
+    },
+    {
+      "search": 2,
+      "n_max": 92,
+      "bounded": true
+    },
+    {
+      "search": 3,
+      "n_max": 88,
+      "bounded": true
+    }
+  ],
+  "spread": 0.22666666666666666,
+  "admit_all": false,
+  "admission": 58
+}
