@@ -142,6 +142,19 @@ class WaitingQueueTest {
     }
 
     @Test
+    void 입장한_회원이_대기_취소하면_입장권을_반납하고_그_자리로_다음_회원이_들어온다() {
+        joinMembers(1L, 2L, 3L, 4L, 5L);
+        queue.admit();
+        queue.admit();
+
+        queue.leave(1L);
+        queue.admit();
+
+        assertThat(queue.status(1L)).isEqualTo(new QueueStatus.NotInQueue());
+        assertThat(queue.status(5L)).isInstanceOf(QueueStatus.Admitted.class);
+    }
+
+    @Test
     void 다른_회차를_기다리는_회원은_줄을_설_수_없다() {
         joinMembers(1L, 2L);
         queue.admit();

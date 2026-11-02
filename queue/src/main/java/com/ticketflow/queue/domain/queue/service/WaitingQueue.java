@@ -63,6 +63,7 @@ public class WaitingQueue {
     }
 
     public synchronized void leave(Long memberId) {
+        passesByMember.remove(memberId);
         Waiter waiter = waitersByMember.get(memberId);
         if (waiter != null) {
             remove(waiter);

@@ -184,6 +184,21 @@ class QueueApiTest {
     }
 
     @Test
+    void 입장한_회원이_대기_취소하면_입장권을_반납해_줄에_없다는_응답이_온다() throws Exception {
+        openShowtime(SHOWTIME_ID);
+        join(1L);
+        waitingQueue.admit();
+
+        mockMvc.perform(delete("/api/showtimes/{showtimeId}/queue/me", SHOWTIME_ID)
+                        .header(HttpHeaders.AUTHORIZATION, MemberTokens.bearer(1L)))
+                .andExpect(status().isNoContent());
+
+        checkQueue(1L)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_IN_QUEUE"));
+    }
+
+    @Test
     void 줄을_서지_않은_회차의_대기를_취소하면_줄에_없다는_오류가_오고_원래_자리는_남는다() throws Exception {
         openShowtime(SHOWTIME_ID);
         join(1L);

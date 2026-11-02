@@ -1,7 +1,24 @@
 export type StoredEntryPass = { entryPass: string; expiresAt: string };
 
+function prefixOf(memberId: number): string {
+  return `ticketflow.entryPass.${memberId}.`;
+}
+
 function keyOf(memberId: number, showtimeId: string): string {
-  return `ticketflow.entryPass.${memberId}.${showtimeId}`;
+  return prefixOf(memberId) + showtimeId;
+}
+
+export function storedEntryPassShowtimes(memberId: number | null): string[] {
+  if (memberId === null) {
+    return [];
+  }
+  try {
+    return Object.keys(sessionStorage)
+      .filter(key => key.startsWith(prefixOf(memberId)))
+      .map(key => key.slice(prefixOf(memberId).length));
+  } catch {
+    return [];
+  }
 }
 
 export function entryPassExpiresAt(pass: StoredEntryPass): number {
