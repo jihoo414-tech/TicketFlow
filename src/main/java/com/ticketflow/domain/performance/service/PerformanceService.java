@@ -21,7 +21,6 @@ public class PerformanceService {
         return toResponses(findAllPerformances());
     }
 
-    @Transactional(readOnly = true)
     public void validatePerformanceExists(Long performanceId) {
         if (!performanceRepository.existsById(performanceId)) {
             throw new BusinessException(ErrorCode.PERFORMANCE_NOT_FOUND);
