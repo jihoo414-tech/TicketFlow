@@ -47,3 +47,14 @@ graphify-out/
 
 .idea/
 app.tar
+
+### Local AI tools and private work records ###
+/.agents/
+/.claude/
+/CLAUDE.md
+/skills-lock.json
+/prompt.md
+
+### Local AWS setup ###
+/docker-compose.aws.yml
+/perf/aws.env.example

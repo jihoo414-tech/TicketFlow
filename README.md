@@ -183,7 +183,7 @@ python perf/run.py peak --target aws --seats 750 --zones 3   # N_max 탐색(10�
 python perf/plot.py                                  # docs/performance/*.png
 ```
 
-실행할 때마다 `docker-compose.aws.yml`로 DB를 새로 만든다. 요구사항: Docker, k6, Python 3 + pandas + matplotlib, 저장소 루트의 `.env`. AWS에서 잴 때는 `--target aws`를 붙이고 `perf/aws.env.example`을 `.env.aws`로 복사해 채운다(추가로 `pip install pymysql boto3`). `--zones 1`은 구역 없음과 같은 대조군이다. 판정은 k6 p95로 하고, 서버 쪽 처리 시간(Tomcat 접근 로그)을 함께 기록한다.
+측정 당시 사용한 로컬 컨테이너 구성과 AWS 환경 설정은 공개 저장소에 포함되어 있지 않아, 이 저장소만으로는 해당 측정을 그대로 재현할 수 없다. `--zones 1`은 구역 없음과 같은 대조군이다. 판정은 k6 p95로 하고, 서버 쪽 처리 시간(Tomcat 접근 로그)을 함께 기록했다.
 
 ## 문서
 

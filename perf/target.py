@@ -109,7 +109,7 @@ class AwsTarget:
     def __init__(self):
         self.env = read_env_file(ROOT / '.env.aws')
         if not self.env:
-            raise RuntimeError('.env.aws가 없다. perf/aws.env.example을 복사해 채운다')
+            raise RuntimeError('.env.aws가 없다. AWS 환경 설정을 별도로 준비해야 한다')
         self.app_url = self.env['AWS_APP_URL'].rstrip('/')
         self.app_container = self.env.get('AWS_APP_CONTAINER', 'ticketflow-app')
         self.ec2_host = self.env.get('AWS_EC2_HOST', '')

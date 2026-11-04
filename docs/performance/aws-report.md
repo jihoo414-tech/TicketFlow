@@ -127,4 +127,4 @@ python perf/run.py peak --target aws --seats 750 --zones 3   # 3구역
 python perf/run.py ladder --seats 750 --zones 3              # 로컬 단계 측정
 ```
 
-AWS 대상은 `perf/aws.env.example`을 `.env.aws`로 복사해 채운다(앱·k6 EC2 주소, RDS, `AWS_JWT_SECRET`).
+측정 당시 AWS 환경 설정 예시는 공개 저장소에 포함되어 있지 않다. AWS 측정에는 앱·k6 EC2 주소, RDS 접속 정보와 `AWS_JWT_SECRET` 등 별도의 환경 설정이 필요하다.
