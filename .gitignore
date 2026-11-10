@@ -48,11 +48,7 @@ graphify-out/
 .idea/
 app.tar
 
-### Local AI tools and private work records ###
-/.agents/
-/.claude/
-/CLAUDE.md
-/skills-lock.json
+### Private prompt log (written by .claude/hooks/save-prompt.js) ###
 /prompt.md
 
 ### Local AWS setup ###
