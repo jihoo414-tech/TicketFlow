@@ -1,4 +1,4 @@
-# "TicketFlow"
+# TicketFlow
 
 여러 회원이 같은 좌석을 동시에 노려도 **한 좌석은 한 사람에게만** 돌아가도록 보장하는 선착순 공연 예매 서비스입니다.
 
@@ -9,16 +9,24 @@
 
 예매 오픈 순간에는 많은 회원이 한꺼번에 몰려 같은 좌석을 동시에 선점하려 합니다. 이때 좌석이 중복으로 팔리지 않으면서, 정해진 서버 사양 안에서 최대한 많은 회원을 받아야 합니다.
 
-**TicketFlow**는 이 과정을 하나의 서비스에서 관리합니다.
+- 공연·회차·구역별로 좌석을 조회합니다
+- 같은 회차에서 1~4석을 한 번에 선점합니다. 한 석이라도 실패하면 아무 좌석도 잡지 않습니다
+- 5분 안에 결제하면 예매가 확정되고, 시간이 지나면 정리 작업 없이도 좌석이 바로 반환됩니다
+- 내 예매를 조회하고, 회차 시작 전까지 취소할 수 있습니다
+- 예매 오픈 때는 대기열 서버가 입장권을 발급해 들어오는 인원을 조절합니다
+- 이메일·비밀번호로 가입하고 JWT로 로그인합니다
 
-- 공연·회차·구역별 좌석 조회
-- 같은 회차의 좌석 1~4석을 전부 선점하거나 전부 실패하는 선점
-- 5분 안에 결제하면 예매 확정, 지나면 정리 작업 없이도 즉시 좌석 반환
-- 내 예매 조회와 회차 시작 전 예매 취소
-- 예매 오픈 피크를 받아 내는 대기열 서버와 입장권
-- 이메일·비밀번호 가입과 JWT 로그인
+---
+## 📚 문서
 
-개발 과정과 측정·개선 이야기는 [`docs/story.md`](docs/story.md)에 있습니다.
+| 문서 | 내용 |
+| --- | --- |
+| [`story.md`](docs/story.md) | 개발 과정과 측정·개선 이야기 |
+| [`invariants.md`](docs/invariants.md) | 어떤 동시성에서도 지켜야 하는 규칙 |
+| [`concurrency-cases.md`](docs/concurrency-cases.md) | 경쟁 상황 분석과 해결 방식 비교 |
+| [`seat-count-report.md`](docs/performance/seat-count-report.md) | 로컬 단계 측정과 개선 보고서 |
+| [`aws-report.md`](docs/performance/aws-report.md) | AWS 좌석 수별 수용 인원과 구역 조회 보고서 |
+| [`adr/`](docs/adr/) | 설계 결정 기록 |
 
 ---
 ## 🛠 Tech Stack
@@ -33,6 +41,7 @@
 | Security | Spring Security, OAuth2 Resource Server (JWT) |
 | Database | MySQL 8.4 |
 | Cache | Caffeine |
+| Queue | 별도 Spring Boot 서버(`queue` 모듈), 메모리 대기열 |
 | Build | Gradle (Groovy) |
 
 ### Frontend
@@ -61,7 +70,7 @@
 
 - JDK 21
 - Docker
-- Node.js(npm) — Gradle이 프론트 빌드 때 호출합니다
+- Node.js(npm): Gradle이 프론트 빌드 때 호출합니다
 
 ### Backend
 #### 1. 환경변수 설정
