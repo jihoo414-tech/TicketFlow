@@ -54,3 +54,6 @@ app.tar
 ### Local AWS setup ###
 /docker-compose.aws.yml
 /perf/aws.env.example
+
+### Agent skills lock ###
+/skills-lock.json
